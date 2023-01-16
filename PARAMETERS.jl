@@ -37,8 +37,7 @@ const timestep_type =  "dynamic-log" #"log-linear" # basically never use this on
 
 # SET EXPERIMENT
 const exptype =  "temperature" #"water" # "insolation"#
-# temperature
-# const use_for_Texo = 225.
+
 #water
 const water_case = "1e-6" # for Venus, this is just the mixing ratio.
 const water_mixing_ratio = 1e-6 #
@@ -59,7 +58,6 @@ const controltemps = [735., 170., 260.]
 const tag = "venus_temp_$(results_version)"
 
 # Temperature and water
-
 const meantemps = [735., 170., 260.] # Used for saturation vapor pressure. DON'T CHANGE!
 const reinitialize_water_profile = true # false # setting to true will set the water profile = water_mixing_ratio everywhere
 
@@ -84,7 +82,7 @@ const reaction_network_spreadsheet = code_dir*"REACTION_NETWORK.xlsx" # "REACTIO
 # Ionospheric chemistry and non-thermal escape
 const nontherm = ions_included==true ? true : false  
 const converge_which = "both"
-const e_profile_type = "none" # "quasineutral" #"O2+" # "constant"# Set to "none" when attempting to converge from neutrals first, quasineutral otherwise
+const e_profile_type ="quasineutral" # "none" # "quasineutral" #"O2+" # "constant"# Set to "none" when attempting to converge from neutrals first, quasineutral otherwise
 const remove_unimportant = true # Whether to use a slightly smaller list of species and reactions (removing minor species that Roger had in his model)
 const adding_new_species = false # set to true if introducing a new species.
 
