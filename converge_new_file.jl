@@ -740,31 +740,31 @@ function get_rates_and_jacobian(n, p, t; globvars...)
         println("New checkpoint = $(checkpoint)")
     end
 
-    if do_chem==true
-        # retrieve the shortlived species from their storage and flatten them
-        n_short = flatten_atm(external_storage, GV.active_shortlived; GV.num_layers)
+    # if do_chem==true
+    # retrieve the shortlived species from their storage and flatten them
+    n_short = flatten_atm(external_storage, GV.active_shortlived; GV.num_layers)
 
-        # Update Jrates
-        n_cur_all = compile_ncur_all(n; n_short=n_short, n_inactive=GV.n_inactive, GV.active_longlived, GV.active_shortlived, GV.inactive_species, GV.num_layers)
+    # Update Jrates
+    n_cur_all = compile_ncur_all(n; n_short=n_short, n_inactive=GV.n_inactive, GV.active_longlived, GV.active_shortlived, GV.inactive_species, GV.num_layers)
 
-        update_Jrates!(n_cur_all; GV.Jratelist, GV.crosssection, GV.num_layers, GV.absorber, GV.dz, GV.solarflux)
-        # copy all the Jrates into an external dictionary for storage
-        for jr in GV.Jratelist                # time for this is ~0.000005 s
-            global external_storage[jr] = n_cur_all[jr]
-        end
-
-        # Retrieve Jrates 
-        Jrates = deepcopy(ftype_ncur[external_storage[jr][ialt] for jr in GV.Jratelist, ialt in 1:GV.num_layers])
-
-        # set the concentrations of species assumed to be in photochemical equilibrium. 
-        n_short_updated = set_concentrations!(external_storage, n, n_short, GV.n_inactive, Jrates, M, E; 
-                                              GV.active_longlived, GV.active_shortlived, GV.inactive_species, GV.Tn, GV.Ti, GV.Te, GV.num_layers)
-
-        # Reconstruct the dictionary that holds densities
-        updated_ncur_all = compile_ncur_all(n; n_short=n_short_updated, n_inactive=GV.n_inactive, GV.active_longlived, GV.active_shortlived, GV.inactive_species, GV.num_layers)
-    else 
-        updated_ncur_all = compile_ncur_all(n; GV.active_longlived, GV.active_shortlived, GV.inactive_species, GV.num_layers)
+    update_Jrates!(n_cur_all; GV.Jratelist, GV.crosssection, GV.num_layers, GV.absorber, GV.dz, GV.solarflux)
+    # copy all the Jrates into an external dictionary for storage
+    for jr in GV.Jratelist                # time for this is ~0.000005 s
+        global external_storage[jr] = n_cur_all[jr]
     end
+
+    # Retrieve Jrates 
+    Jrates = deepcopy(ftype_ncur[external_storage[jr][ialt] for jr in GV.Jratelist, ialt in 1:GV.num_layers])
+
+    # set the concentrations of species assumed to be in photochemical equilibrium. 
+    n_short_updated = set_concentrations!(external_storage, n, n_short, GV.n_inactive, Jrates, M, E; 
+                                          GV.active_longlived, GV.active_shortlived, GV.inactive_species, GV.Tn, GV.Ti, GV.Te, GV.num_layers)
+
+    # Reconstruct the dictionary that holds densities
+    updated_ncur_all = compile_ncur_all(n; n_short=n_short_updated, n_inactive=GV.n_inactive, GV.active_longlived, GV.active_shortlived, GV.inactive_species, GV.num_layers)
+    # else 
+    #     updated_ncur_all = compile_ncur_all(n; GV.active_longlived, GV.active_shortlived, GV.inactive_species, GV.num_layers)
+    # end
 
     # Get the updated transport coefficients, taking into account short-lived species update
     tlower, tup, tdown, tupper = update_transport_coefficients(GV.transport_species, updated_ncur_all, D_arr, M; 
@@ -996,9 +996,9 @@ function update!(n_current::Dict{Symbol, Array{ftype_ncur, 1}}, t, dt; abstol=1e
     #    println("max(nend-nstart) = $(max((nend-nstart)...))")
 
     # retrieve the shortlived species from their storage and flatten them
-    if do_chem==true
-        n_short = flatten_atm(external_storage, GV.active_shortlived; GV.num_layers)
-    end
+    # if do_chem==true
+    n_short = flatten_atm(external_storage, GV.active_shortlived; GV.num_layers)
+    # end
 
     n_current = compile_ncur_all(nend; GV.active_longlived, GV.active_shortlived, GV.inactive_species, GV.num_layers)
 
@@ -1179,9 +1179,9 @@ function converge(n_current::Dict{Symbol, Array{ftype_ncur, 1}}, log_t_start, lo
         end
     end
 
-    if (log10(dt) / log10(total_time) > 1e-6)
-        println("Quitting because the timestep is 1 ppm of the total time or smaller, so we'll never advance further")
-    end
+    # if (log10(dt) / log10(total_time) > 1e-6)
+    #     println("Quitting because the timestep is 1 ppm of the total time or smaller, so we'll never advance further")
+    # end
     
     return n_current, total_time
 end
@@ -1368,9 +1368,8 @@ end
 # outside of the primary ODE solver. Inactive species never change during simulation.
 # Jrates must be stored here because they have to be updated alongside evolution
 # of the atmospheric densities--the solver doesn't handle their values currently.
-const external_storage = Dict([j=>n_current[j] for j in union(short_lived_species, inactive_species, Jratelist)])
+const external_storage = Dict{Symbol, Vector{Float64}}([j=>n_current[j] for j in union(short_lived_species, inactive_species, Jratelist)])
 const n_inactive = flatten_atm(n_current, inactive_species; num_layers)
-
 
 # **************************************************************************** #
 #                                                                              #
@@ -1750,8 +1749,6 @@ const crosssection = populate_xsect_dict(photochem_data_files; ion_xsects=ions_i
 solarflux = readdlm(code_dir*solarfile,'\t', Float64, comments=true, comment_char='#')[1:2000,:] # 2000
 solarflux[:,2] = solarflux[:,2] * cosd(SZA)  # Adjust the flux according to specified SZA
 
-println("solarflux: $(size(solarflux))")
-
 lambdas = Float64[]
 
 for j in Jratelist, ialt in 1:length(alt)
@@ -2011,11 +2008,13 @@ elseif problem_type == "ODE"
 elseif problem_type == "Gear"
     # Plot the final atmospheric state
     println("Plotting final atmosphere, writing out state")
-    plot_atm(atm_soln, results_dir*sim_folder_name*"/final_atmosphere.png", abs_tol_for_plot, sum([atm_soln[i] for i in ion_species]); 
+    final_E_profile = electron_density(atm_soln; e_profile_type, non_bdy_layers, ion_species)
+    plot_atm(atm_soln, results_dir*sim_folder_name*"/final_atmosphere.png", abs_tol_for_plot, final_E_profile; 
              t="final converged state, total time = $(sim_time)", neutral_species, ion_species, plot_grid, speciescolor, speciesstyle, zmax, hrshortcode, rshortcode)
 
     # Collect the J rates
-    Jratedict = Dict([j=>external_storage[j] for j in keys(external_storage) if occursin("J", string(j))])
+    Jratedict = Dict{Symbol, Vector{Float64}}([j=>external_storage[j] for j in keys(external_storage) if occursin("J", string(j))])
+
     # Write out the final state to a unique file for easy finding
     write_final_state(atm_soln, results_dir, sim_folder_name, final_atm_file; alt, num_layers, hrshortcode, Jratedict, rshortcode, external_storage)
     
