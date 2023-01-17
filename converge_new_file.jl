@@ -44,7 +44,6 @@ using GeneralizedGenerated: mk_function
 using Dates
 using DataFrames
 using XLSX
-
 t2 = time()
 println("$(Dates.format(now(), "(HH:MM:SS)")) Loaded modules in $(format_sec_or_min(t2-t1))")
 
@@ -222,7 +221,7 @@ function record_atmospheric_state(t, n, actively_solved, E_prof; opt="", globvar
     # This is just to change how many decimal places to include depending if t >= 1.
     rounding_digits = t <= 1 ? Int64(ceil(abs(log10(t)))) : 0 
 
-    progress_alert = "$(Dates.format(now(), "(HH:MM:SS)")) reached timestep $(t), total elapsed time=$(format_sec_or_min(time() - ti))"
+    progress_alert = "$(Dates.format(now(), "(HH:MM:SS)")) reached total sim time $(t), total elapsed wall time=$(format_sec_or_min(time() - ti))"
     write_to_log(logfile, progress_alert)
     println(progress_alert)
     
@@ -996,9 +995,7 @@ function update!(n_current::Dict{Symbol, Array{ftype_ncur, 1}}, t, dt; abstol=1e
     #    println("max(nend-nstart) = $(max((nend-nstart)...))")
 
     # retrieve the shortlived species from their storage and flatten them
-    # if do_chem==true
     n_short = flatten_atm(external_storage, GV.active_shortlived; GV.num_layers)
-    # end
 
     n_current = compile_ncur_all(nend; GV.active_longlived, GV.active_shortlived, GV.inactive_species, GV.num_layers)
 
@@ -1133,29 +1130,7 @@ function converge(n_current::Dict{Symbol, Array{ftype_ncur, 1}}, log_t_start, lo
         goodstep_limit = 1 # Need at least this many successful iterations before increasing timestep
        
         # the first clause before the & will help prevent the simulation stalling out if it has to reduce dt too much.
-        while (dt < 10.0^log_t_end) | (total_time <= season_length_in_sec)
-            
-            # n_old = deepcopy(n_current)
-            # n_temp = deepcopy(n_current)
-
-            # SPECIAL BLOCK ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            # if seasonal_cycle == true
-            #     println("Alert: Using the special block for seasonal cycle, forcing certain timesteps")
-            #     if ((total_time + dt) > checkpoint) | (checkpoint == season_length_in_sec)
-            #         println("total_time+dt = $(total_time+dt). Entering special block to try and meet $(checkpoint)")
-            #         temp_dt = checkpoint - total_time
-            #         n_temp = update!(n_temp, total_time+temp_dt, temp_dt; abstol=abstol, reltol=reltol, globvars...)
-            #     end 
-
-            #     # This should take care of the case where we are trying to collect the season end
-            #     if (checkpoint == season_length_in_sec)
-            #         temp_total_time = total_time + temp_dt 
-            #         println("Entering special block to try and meet $(checkpoint)")
-            #         temp_dt = checkpoint - temp_total_time
-            #         n_temp = update!(n_temp, temp_total_time+temp_dt, temp_dt; abstol=abstol, reltol=reltol, globvars...)
-            #     end 
-            # else
-            # END SPECIAL BLOCK ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        while (dt < 10.0^log_t_end) & (total_time <= season_length_in_sec)
 
             total_time += dt
         
@@ -1178,10 +1153,6 @@ function converge(n_current::Dict{Symbol, Array{ftype_ncur, 1}}, log_t_start, lo
                 # println("max(n_current-n_old) = $(max([max((abs.(n_current[sp] - n_old[sp]))...) for sp in GV.all_species]...))\n\n")
         end
     end
-
-    # if (log10(dt) / log10(total_time) > 1e-6)
-    #     println("Quitting because the timestep is 1 ppm of the total time or smaller, so we'll never advance further")
-    # end
     
     return n_current, total_time
 end
@@ -1256,7 +1227,7 @@ if reinitialize_atmo == true
         n_current[J] = zeros(num_layers)
     end
 
-    n_current[:CO2] .= 0.965 * ntot_at_lowerbdy
+    # n_current[:CO2] .= 0.965 * ntot_at_lowerbdy
 else
     n_current = get_ncurrent(initial_atm_file)
 end
@@ -1264,10 +1235,10 @@ end
 
 #                       Establish new species profiles                          #
 #===============================================================================#
-# !! WARNING !! the initial profile files have NOT been updated for Venus yet. 
 if adding_new_species==true
     if converge_which == "neutrals"
-        println("Converging neutrals only. The following readout should contain the ions and N-bearing neutrals: $(inactive_species)")
+
+        starting_density = n_tot(n_current; all_species=orig_neutrals)
 
         for nn in new_neutrals
             n_current[nn] = zeros(num_layers)
@@ -1276,11 +1247,24 @@ if adding_new_species==true
         if use_nonzero_initial_profiles
             println("Initializing non-zero profiles for $(new_neutrals)")
             for nn in new_neutrals
-                n_current[nn] = reshape(readdlm("../Resources/initial_profiles/$(string(nn))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
+                if @isdefined new_neutrals_MRs 
+                    try 
+                        n_current[nn] = new_neutrals_MRs[nn] * starting_density
+                    catch KeyError
+                        println("No entry for $nn, using zeros.")
+                    end
+                else 
+                    try 
+                        n_current[nn] = reshape(readdlm("../Resources/initial_profiles/$(string(nn))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
+                    catch 
+                        println("No initial guess found for $(nn). Initial profile will be zero everywhere.")
+                    end
+                end
             end
         end
     elseif converge_which == "ions"
-        println("Converging ions. The following readout should contain the non-N-bearing neutrals: $(inactive_species)")
+        throw("Haven't set up converge ions yet")
+        println("Converging ions: $(new_ions)")
 
         for ni in new_ions
             n_current[ni] = zeros(num_layers)
@@ -1298,11 +1282,7 @@ if adding_new_species==true
             end
         end
     elseif converge_which == "both" 
-        if occursin("PARAMETERS-conv3", paramfile)
-            println("Converging N-bearing neutrals and ions together. This list readout of inactive_species should contain non-N-bearing neutrals: $(inactive_species)")
-        else
-            println("Converging neutrals and ions together. This list readout of inactive_species should be empty: $(inactive_species)")
-        end
+        starting_density = n_tot(n_current; all_species=union(orig_neutrals, orig_ions))
 
         for nn in new_neutrals
             n_current[nn] = zeros(num_layers)
@@ -1314,18 +1294,27 @@ if adding_new_species==true
         if use_nonzero_initial_profiles
             println("Initializing non-zero profiles for $(new_neutrals) and $(new_ions)")
             for nn in new_neutrals
-                try
-                    n_current[nn] = reshape(readdlm("../Resources/initial_profiles/$(string(nn))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
-                catch 
-                    println("No initial guess found for $(nn). Initial profile will be zero everywhere.")
+                
+                if @isdefined new_neutrals_MRs 
+                    n_current[nn] = new_neutrals_MRs[nn] * starting_density
+                else 
+                    try 
+                        n_current[nn] = reshape(readdlm("../Resources/initial_profiles/$(string(nn))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
+                    catch 
+                        println("No initial guess found for $(nn). Initial profile will be zero everywhere.")
+                    end
                 end
             end
 
             for ni in setdiff(new_ions, keys(D_H_analogues))
-                try
-                    n_current[ni] = reshape(readdlm("../Resources/initial_profiles/$(string(ni))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
-                catch 
-                    println("No initial guess found for $(ni). Initial profile will be zero everywhere.")
+                if @isdefined new_ions_MRs 
+                    n_current[ni] = new_ions_MRs[ni] * starting_density
+                else 
+                    try 
+                        n_current[ni] = reshape(readdlm("../Resources/initial_profiles/$(string(ni))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
+                    catch 
+                        println("No initial guess found for $(ni). Initial profile will be zero everywhere.")
+                    end
                 end
             end
             
@@ -1334,7 +1323,7 @@ if adding_new_species==true
             end
         end
     else
-        throw("Uncaught exception")
+        throw("You asked to converge $(converge_which) which is not an allowable option")
     end
     # Zero out the new Jrates
     for nj in newJrates
@@ -1422,8 +1411,6 @@ const chemJ_below = chemical_jacobian(active_longlived, active_longlived_below; 
 
 #                     Photochemical equilibrium setup                           #
 #===============================================================================#
-
-# TODO: Make this not run if Gear is the problem type. Have to figure out which of these things we would need instead. 
 
 function setup_photochemical_equilibrium()
     #=
@@ -1739,7 +1726,7 @@ end
 # **************************************************************************** #
 println("$(Dates.format(now(), "(HH:MM:SS)")) Populating cross section dictionary...")
 
-const crosssection = populate_xsect_dict(photochem_data_files; ion_xsects=ions_included, Tn=Tn_arr, n_all_layers)
+const crosssection = populate_xsect_dict(photochem_data_files; Tn=Tn_arr, n_all_layers) # ion_xsects=ions_included, 
 
 # **************************************************************************** #
 #                                                                              #
@@ -1755,9 +1742,10 @@ for j in Jratelist, ialt in 1:length(alt)
     global lambdas = union(lambdas, crosssection[j][ialt][:,1])
 end
 
-if (!(setdiff(solarflux[:,1],lambdas)==[])) & (do_chem==true)
-    throw("Solar flux wavelengths don't match cross section wavelengths!")
-end
+# I believe the next is not important because we pad the cross sections right after.
+# if (!(setdiff(solarflux[:,1],lambdas)==[])) & (do_chem==true)
+#     println("Warning: Solar flux wavelengths don't match cross section wavelengths! But, I also think this message may be oudated and unnecessary because of the next block...")
+# end
 
 # pad all cross-sections to solar
 for j in Jratelist, ialt in 1:length(alt)
@@ -1831,7 +1819,7 @@ plot_atm(n_current, results_dir*sim_folder_name*"/initial_atmosphere.png", abs_t
          t="initial state", neutral_species, ion_species, plot_grid, speciescolor, speciesstyle, zmax, hrshortcode, rshortcode) 
 
 # Create a list to keep track of stiffness ratio ===============================
-# const stiffness = [] # Tirn this on if you are trying to check Jacobian eigenvalues.
+# const stiffness = [] # Turn this on if you are trying to check Jacobian eigenvalues.
 
 # Simulation time range and when to save a snapshot 
 const mindt = dt_min_and_max[converge_which][1]

@@ -274,17 +274,13 @@ function string_to_latexstr(a; dollarsigns=true)
     this will format it as a latex string for easy plotting.
     =#
     if dollarsigns==true
-        # OLd version that doesn't mathrm the plain species without any special latex stuff:
-        # returnme = latexstring(replace(a, "Nup2D"=>"N(\$^2\$D)", "2pl"=>"\$_2^+\$", "3pl"=>"\$_3^+\$", "2"=>"\$_2\$", "3"=>"\$_3\$", "E"=>"e\$^-\$", 
-        #                               "J"=>"", "plp"=>latexstring("\$^+ +\$"), "pl"=>latexstring("\$^+\$"),  "p"=>"\$+\$", 
-        #                               "-->"=>latexstring("\$\\rightarrow\$"), "to"=>latexstring("\$\\rightarrow\$")) ) 
-        replaced = replace(a, "Nup2D"=>"N(^2D)", "2pl"=>"_2^+", "3pl"=>"_3^+", "2"=>"_2", "3"=>"_3", "E"=>"e^-", 
+        replaced = replace(a, "O1D"=>"O(^1D)", "Nup2D"=>"N(^2D)", "2pl"=>"_2^+", "3pl"=>"_3^+", "2"=>"_2", "3"=>"_3", "E"=>"e^-", 
                                       "J"=>"", "plp"=>"^+ +", "pl"=>"^+",  "p"=>"+", 
                                       "-->"=>"\\rightarrow", "to"=>" \\rightarrow ")
         
         returnme = latexstring("\$\\mathrm{" * replaced * "}\$" ) 
     else # This is if you're trying to interpolate a variable that contains a latex string into an existing latex string...
-        replaced = replace(a, "2"=>"_2", "3"=>"_3", "E"=>"e^-", "pl"=>"^+", "-->"=>"\\rightarrow")
+        replaced = replace(a, "1D"=>"^1D", "up2D"=>"^2D", "2"=>"_2", "3"=>"_3", "E"=>"e^-", "pl"=>"^+", "-->"=>"\\rightarrow")
         returnme = "\\mathrm{" * replaced * "}" 
     end
 

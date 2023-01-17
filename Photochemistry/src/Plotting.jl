@@ -139,9 +139,10 @@ function plot_atm(atmdict::Dict{Symbol, Vector{ftype_ncur}}, savepath::String, a
     if haskey(GV, :ion_species) # neutrals and ions 
         
         # set up the overall plot -------------------------------------------------------------
-        atm_fig, atm_ax = subplots(3, 2, sharex=false, sharey=true, figsize=(14, 16))
-        subplots_adjust(wspace=0.2, hspace=0)
+        atm_fig, atm_ax = subplots(3, 2, sharex=false, sharey=true, figsize=(16, 16))
         tight_layout()
+        subplots_adjust(wspace=0.2, hspace=0.15)
+        
                 
         # only the neutral-col axes
         atm_ax[1, 1].set_title("Neutrals")
