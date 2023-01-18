@@ -291,11 +291,11 @@ function populate_xsect_dict(pd_dataf; ion_xsects=true, globvars...)
 
     # CO₂ + hν -> C + O + O; JCO2toCpOpO  
     thisjr = get_Jrate_symb("CO2", ["C", "O", "O"])
-    xsect_dict[thisjr] =  fill(readdlm(xsecfolder*"$(thisjr).csv",',',Float64, comments=true, comment_char='#'), GV.n_all_layers)
+    xsect_dict[thisjr] = fill(readdlm(xsecfolder*"$(thisjr).csv",',',Float64, comments=true, comment_char='#'), GV.n_all_layers)
 
     # CO2 + hν -> C + O₂; JCO2toCpO2
     thisjr = get_Jrate_symb("CO2", ["C", "O2"])
-    xsect_dict[thisjr] =  fill(readdlm(xsecfolder*"$(thisjr).csv",',',Float64, comments=true, comment_char='#'), GV.n_all_layers)
+    xsect_dict[thisjr] = fill(readdlm(xsecfolder*"$(thisjr).csv",',',Float64, comments=true, comment_char='#'), GV.n_all_layers)
 
     # O2 photodissociation ---------------------------------------------------------
     # O2+hv->O+O
