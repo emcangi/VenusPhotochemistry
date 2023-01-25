@@ -190,12 +190,15 @@ function load_bcdict_from_paramdf(df)
     return speciesbclist_reconstructed
 end
 
-function load_from_paramlog(folder)
+function load_from_paramlog(folder; quiet=true, globvars...)
     #=
     Given a folder containing simulation results, this will open the parameter log spreadsheet, 
     load as dataframe, and extract all the entries so as to return the global parameters that were used for
     that simulation. 
     =#
+
+    # Load the workbook
+    paramlog_wb = XLSX.readxlsx("$(folder)PARAMETERS.xlsx")
 
     # Basic variables
     df_gen = DataFrame(XLSX.readtable("$(folder)PARAMETERS.xlsx", "General"));

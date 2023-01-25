@@ -24,24 +24,24 @@ using DataFrames
 # !!                                                                        !! #
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
 
-reinitialize_atmo = true
+reinitialize_atmo = false#true
 
 # Basic simulation parameters
-const optional_logging_note = "First Venus Attempt" # Simulation goal
+const optional_logging_note = "Run some more to make sure everything is stable, turn on non-thermal escape" # Simulation goal
 const simset = "VenusPaper"
-const results_version = "v0"  # Helps keep track of attempts 
-const initial_atm_file = "INITIAL_GUESS.h5" 
-
+const results_version = "v0.7"  # Helps keep track of attempts 
+const initial_atm_file = "converged_v0.6_all_in.h5"#"INITIAL_GUESS.h5" 
 const seasonal_cycle = false # False for Venus
-const timestep_type =  "dynamic-log" #"log-linear" # basically never use this one: "static-log" 
+const timestep_type = "dynamic-log" #"log-linear" # basically never use this one: "static-log" 
 
 # SET EXPERIMENT
 const exptype =  "temperature" #"water" # "insolation"#
 
-#water
+# water
 const water_case = "1e-6" # for Venus, this is just the mixing ratio.
 const water_mixing_ratio = 1e-6 #
 # const update_water_profile = false # this is for modifying the profile during cycling, currently doesn't work well
+
 # solar cycle
 const solarcyc = "mean" # "max" # "min"#
 
@@ -53,25 +53,25 @@ const solarcyc = "mean" # "max" # "min"#
 
 # Set up temperature and folder tag name according to the type of simulation set
 
-const solarfile = "VENUSsolarphotonflux_solarmean.dat" # CHANGE
+const solarfile = "VENUSsolarphotonflux_solarmean.dat" 
 const controltemps = [735., 170., 260.]
 const tag = "venus_temp_$(results_version)"
 
 # Temperature and water
 const meantemps = [735., 170., 260.] # Used for saturation vapor pressure. DON'T CHANGE!
-const reinitialize_water_profile = true # false # setting to true will set the water profile = water_mixing_ratio everywhere
+const reinitialize_water_profile = false#true # false # setting to true will set the water profile = water_mixing_ratio everywhere
 
 # Tolerance and timespans 
-const season_length_in_sec = seasonal_cycle==true ? sol_in_sec : 1e16
 const maxlogdt = seasonal_cycle==true ? 5 : 16
-const dt_min_and_max = Dict("neutrals"=>[-3, 14], "ions"=>[-4, 6], "both"=>[-3, maxlogdt]) 
+const season_length_in_sec = seasonal_cycle==true ? sol_in_sec : 10^maxlogdt
+const dt_min_and_max = Dict("neutrals"=>[-3, maxlogdt], "ions"=>[-4, 10], "both"=>[-3, maxlogdt]) 
 const rel_tol = 1e-6
 const abs_tol = 1e-12 
 
 # More basics that don't frequently change
-const ions_included = true # false # Turn off when starting from neutrals
+const ions_included = true # false # 
 const SZA = 60 # degrees 
-const fixed_species = [] # here you may enter any species that you want to be completely fixed (no updates to densities from chemistry or transport)
+const fixed_species = []#:H2O] # here you may enter any species that you want to be completely fixed (no updates to densities from chemistry or transport)
 
 # Tags, shortcodes, and filenames
 const hrshortcode, rshortcode = generate_code(ions_included, controltemps[1], controltemps[2], controltemps[3], water_case, solarcyc)
@@ -80,11 +80,12 @@ const final_atm_file = "final_atmosphere.h5"
 const reaction_network_spreadsheet = code_dir*"REACTION_NETWORK.xlsx" # "REACTION_NETWORK_MIN_IONOSPHERE.xlsx" #
 
 # Ionospheric chemistry and non-thermal escape
-const nontherm = ions_included==true ? true : false  
-const converge_which = "both"
-const e_profile_type ="quasineutral" # "none" # "quasineutral" #"O2+" # "constant"# Set to "none" when attempting to converge from neutrals first, quasineutral otherwise
+const nontherm = ions_included==true ? true : false
+println("ALERT: Non-thermal escape is off. Remember to turn back on.")
+const converge_which = "both" #  "ions"  # "neutrals" # 
+const e_profile_type = ions_included==true ? "quasineutral" : "none" # Other options include: "O2+" # "constant"
 const remove_unimportant = true # Whether to use a slightly smaller list of species and reactions (removing minor species that Roger had in his model)
-const adding_new_species = false # set to true if introducing a new species.
+const adding_new_species = false #true # false # set to true if introducing a new species.
 
 
 # **************************************************************************** #
@@ -127,7 +128,7 @@ end
 #      Misc. things used when adding new species or changing altitude grid     #
 #                                                                              #
 # **************************************************************************** #
-const do_chem = true  # false # set to false to try diffusion only
+const do_chem = true # set to false to try diffusion only
 const do_trans = true 
 const make_new_alt_grid = false
 const use_nonzero_initial_profiles = true
@@ -157,9 +158,8 @@ const Tn_meanSVP = T(meantemps...; alt)["neutrals"]; # Needed for boundary condi
 #                             Boundary conditions                              #
 #                                                                              #
 # **************************************************************************** #
-const H2Osat = map(x->Psat(x), Tn_meanSVP) # Using this function keeps SVP fixed 
-# const HDOsat = map(x->Psat_HDO(x), map(Temp_keepSVP, alt))
 
+const H2Osat = map(x->Psat(x), Tn_meanSVP) # Using this function keeps SVP fixed 
 const KoverH_lowerbdy = Keddy([zmin], [ntot_at_lowerbdy])[1]/scaleH_lowerboundary(zmin, Tn_arr[1]; molmass)
 
 const speciesbclist=Dict(:CO2=>Dict("n"=>[0.965*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0.]),
@@ -168,6 +168,7 @@ const speciesbclist=Dict(:CO2=>Dict("n"=>[0.965*ntot_at_lowerbdy, NaN], "f"=>[Na
                          :O2=>Dict("v"=>[KoverH_lowerbdy, NaN], "f"=>[NaN, 0]),
                          :N=>Dict("v"=>[KoverH_lowerbdy, NaN], "f"=>[NaN, 0]),
                          :NO=>Dict("n"=>[5.5e-9*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0]),
+                         :N2=>Dict("n"=>[0.034*ntot_at_lowerbdy, NaN]),
 
                          :H=> Dict("v"=>[NaN, effusion_velocity(Tn_arr[end], 1.0; zmax)], "ntf"=>[NaN, "see boundaryconditions()"]),
                          :D=> Dict("v"=>[NaN, effusion_velocity(Tn_arr[end], 2.0; zmax)], "ntf"=>[NaN, "see boundaryconditions()"]),
@@ -185,33 +186,41 @@ const speciesbclist=Dict(:CO2=>Dict("n"=>[0.965*ntot_at_lowerbdy, NaN], "f"=>[Na
 #                                                                              #
 # **************************************************************************** #
 
-unimportant = [:CNpl,:HCNpl,:HCNHpl,:HN2Opl,:NH2pl,:NH3pl,:N2Opl,:NO2pl,:CH,:CN,:HCN,:HNO,:NH,:NH2,:N2O,:NO2,:HD2pl]
+unimportant = [:CNpl,:HCNpl,:HCNHpl,:HN2Opl,:NH2pl,:NH3pl,:CH,:CN,:HCN,:HNO,:HD2pl]  # :NH,:NH2,
 
 # Neutrals --------------------------------------------------------------------
-const orig_neutrals = [:CO2, :Ar, :CO, :CO2, :H, :H2, :H2O, :H2O2, 
-                       :HO2, :HOCO, :N2, 
+const orig_neutrals = [:Ar, :CO, :CO2, :C, :CH, :CN, 
+                       :H, :H2, :H2O, :H2O2, :HOCO, :HO2, 
+                       :HCN, :HCO, :HNO,
+                       :N2, :N2O, :NO, :NO2, :N, :NH, :NH2, :Nup2D,
                        :O, :O1D, :O2, :O3, :OH,
-                       :D, :DO2, :DOCO, :HD, :HDO, :HDO2, :OD,
 
-                       # Turn these off for minimal ionosphere:
-                       :C, :CH, :CN, :DCO, :HCN, :HCO, :HNO, :N, :NH, :NH2, :N2O, :NO, :NO2, :Nup2D,
+                       # Deuterated
+                       :D, :DCO, :DO2, :DOCO, :HD, :HDO, :HDO2, :OD,
                        ]; 
 const conv_neutrals = remove_unimportant==true ? setdiff(orig_neutrals, unimportant) : orig_neutrals
-const new_neutrals = [];
+const new_neutrals = []; 
+const new_neutrals_MRs = Dict(:HO2=>1e-14, 
+                               :N2=>0.034, :NO2=>1e-10, :N2O=>1e-12, :H2O=>water_mixing_ratio, :NO=>5.5e-9, :CO=>4.5e-6, :O=>1e-8, :O1D=>1e-13,
+                               :N=>1e-9, :O2=>1e-7, )
 const neutral_species = [conv_neutrals..., new_neutrals...];
 
 # Ions -------------------------------------------------------------------------
-const orig_ions = [:CO2pl, :HCO2pl, :Opl, :O2pl, # Nair minimal ionosphere 
+const orig_ions = [:CO2pl, :Opl, :O2pl, # Nair minimal ionosphere 
                    :Arpl, :ArHpl, :ArDpl, 
-                   :Cpl, :CHpl, :CNpl, :COpl, 
-                   :Hpl, :Dpl, :H2pl, :HDpl, :H3pl, :H2Dpl, :HD2pl, 
+                   :Cpl, :CHpl,  :COpl, # :CNpl,
+                   :Hpl, :Dpl, :H2pl, :HDpl, :H3pl, :H2Dpl, 
                    :H2Opl,  :HDOpl, :H3Opl, :H2DOpl, 
-                   :HO2pl, :HCOpl, :DCOpl, :HOCpl, :DOCpl, :DCO2pl, 
-                   :HCNpl, :HCNHpl, :HNOpl, :HN2Opl,  
-                   :Npl,  :NHpl, :NH2pl, :NH3pl, :N2pl, :N2Hpl, :N2Dpl, :N2Opl, :NOpl, :NO2pl,
-                   :OHpl, :ODpl];
-const new_ions = []; 
-# const ion_species = [conv_ions..., new_ions...];
+                   :HO2pl, :HCOpl, :HCO2pl, :DCOpl, :HOCpl, :DOCpl, :DCO2pl, 
+                   :HNOpl, # :HCNpl, :HCNHpl, :HN2Opl,  
+                   :Npl, :N2pl, :NHpl, :N2Hpl,  :N2Dpl, :N2Opl,:NO2pl, # :NH2pl, :NH3pl,
+                   :NOpl, :NO2pl, 
+                   :OHpl, :ODpl,
+                   ];
+const new_ions = [     ]; 
+# not added because they were trapped in "unimportant": :HCNpl, :HCNHpl, :HN2Opl, :NH2pl,:NH3pl, :CNpl,
+const new_ions_MRs = Dict(:NOpl=>1e-14, :Opl=>1e-13, :O2pl=>1e-13, :CO2pl=>1e-14)
+
 const ion_species = remove_unimportant==true ? setdiff([orig_ions..., new_ions...], unimportant) : [orig_ions..., new_ions...]
 
 # Full species list -------------------------------------------------------------
@@ -235,8 +244,11 @@ const absorber = Dict([x=>Symbol(match(r"(?<=J).+(?=to)", string(x)).match) for 
 #                      Miscellaneous logical groupings                         #
 #                                                                              #
 # **************************************************************************** #
-const D_H_analogues = Dict(:ArDpl=>:ArHpl, :Dpl=>:Hpl, :DCOpl=>:HCOpl, :HDpl=>:H2pl, :HD2pl=>:H3pl, :H2Dpl=>:H3pl, :N2Dpl=>:N2Hpl,
-                           :DCO2pl=>:HCO2pl, :DOCpl=>:HOCpl, :H2DOpl=>:H3Opl, :HDOpl=>:H2Opl, :ODpl=>:OHpl)  
+const D_H_analogues = Dict(#neutrals 
+                           :D=>:H, :DCO=>:HCO, :DO2=>:HO2, :DOCO=>:HOCO, :HDO=>:H2O, :HD=>:H2, :HDO2=>:H2O2, :OD=>:OH,
+                           # ions
+                           :ArDpl=>:ArHpl, :Dpl=>:Hpl, :DCOpl=>:HCOpl, :HDpl=>:H2pl, :HD2pl=>:H3pl, :H2Dpl=>:H3pl, :N2Dpl=>:N2Hpl,
+                           :DCO2pl=>:HCO2pl, :DOCpl=>:HOCpl, :H2DOpl=>:H3Opl, :HDOpl=>:H2Opl, :ODpl=>:OHpl,)  
 const D_bearing_species = get_deuterated(all_species)
 const D_ions = get_deuterated(ion_species) #[s for s in ion_species if occursin('D', string(s))];
 const N_neutrals = [s for s in neutral_species if occursin('N', string(s))];
@@ -283,8 +295,10 @@ for fs in fixed_species
 end
 
 if converge_which == "neutrals"
-    append!(no_chem_species, union(conv_ions, N_neutrals)) # This is because the N chemistry is intimiately tied up with the ions.
-    append!(no_transport_species, union(conv_ions, N_neutrals, short_lived_species))
+    if @isdefined conv_ions
+        append!(no_chem_species, conv_ions)#union(conv_ions, N_neutrals)) # This is because the N chemistry is intimiately tied up with the ions.
+        append!(no_transport_species, conv_ions)#union(conv_ions, N_neutrals, short_lived_species))
+    end
 elseif converge_which == "ions"
     append!(no_chem_species, setdiff(conv_neutrals, N_neutrals))
     append!(no_transport_species, setdiff(conv_neutrals, N_neutrals))
@@ -332,9 +346,10 @@ const HDOi = findfirst(x->x==:HDO, active_longlived)
 
 # Altitude at which water transitions from fixed to freely solved for
 # First we have to calculate a few intermediaries.
-H2Osatfrac = H2Osat ./ map(z->n_tot(get_ncurrent(initial_atm_file), z; all_species, n_alt_index), alt)  # get SVP as fraction of total atmo
-const upper_lower_bdy = alt[something(findfirst(isequal(minimum(H2Osatfrac)), H2Osatfrac), 0)] # in cm
-const upper_lower_bdy_i = n_alt_index[upper_lower_bdy]  # the uppermost layer at which water will be fixed, in cm
+temp_nc = get_ncurrent(initial_atm_file)
+H2Osatfrac = H2Osat ./ map(z->n_tot(temp_nc, z; all_species=keys(temp_nc), n_alt_index), alt)  # get SVP as fraction of total atmo
+const upper_lower_bdy = alt[1]#alt[something(findfirst(isequal(minimum(H2Osatfrac)), H2Osatfrac), 0)] # in cm
+const upper_lower_bdy_i = 1#n_alt_index[upper_lower_bdy]  # the uppermost layer at which water will be fixed, in cm
 
 # **************************************************************************** #
 #                                                                              #
@@ -367,11 +382,11 @@ push!(PARAMETERS_CONDITIONS, ("TEXO", T_exo, "K"));
 push!(PARAMETERS_CONDITIONS, ("MEAN_TEMPS", join(meantemps, " "), "K"));
 push!(PARAMETERS_CONDITIONS, ("WATER_MR", water_mixing_ratio, "mixing ratio"));
 push!(PARAMETERS_CONDITIONS, ("WATER_CASE", water_case, "whether running with 10x, 1/10th, or standard water in middle/upper atmo"));
-push!(PARAMETERS_CONDITIONS, ("WATER_BDY", upper_lower_bdy/1e5, "km"))
+# push!(PARAMETERS_CONDITIONS, ("WATER_BDY", upper_lower_bdy/1e5, "km"))
 
 # This is so ugly because the XLSX package won't write columns of different lengths, so I have to pad all the shorter lists
 # with blanks up to the length of the longest list and also transform all the symbols into strings. 
-L = max(length(all_species), length(neutral_species), length(ion_species), length(no_chem_species), length(no_transport_species))
+L = max(length(all_species), length(neutral_species), length(ion_species), length(no_chem_species), length(no_transport_species), length(Jratelist))
 PARAMETERS_SPLISTS = DataFrame(AllSpecies=[[string(a) for a in all_species]..., ["" for i in 1:L-length(all_species)]...], 
                                Neutrals=[[string(n) for n in neutral_species]..., ["" for i in 1:L-length(neutral_species)]...], 
                                Ions=[[string(i) for i in ion_species]..., ["" for i in 1:L-length(ion_species)]...],
@@ -382,4 +397,8 @@ PARAMETERS_SPLISTS = DataFrame(AllSpecies=[[string(a) for a in all_species]..., 
 PARAMETERS_SOLVER = DataFrame(Field=[], Value=[]);
 PARAMETERS_XSECTS = DataFrame(Species=[], Description=[], Filename=[]);
 PARAMETERS_BCS = DataFrame(Species=[], Type=[], Lower=[], Upper=[]);
+
+# LOG THE TEMPERATURES
+PARAMETERS_TEMPERATURE_ARRAYS = DataFrame(Neutrals=Tn_arr, Ions=Ti_arr, Electrons=Te_arr); 
+
 

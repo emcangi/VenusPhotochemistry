@@ -789,7 +789,7 @@ function plot_temp_prof(Tprof_1; opt="", lbls=["Neutrals", "Ions", "Electrons"],
     end
 end
 
-function plot_water_profile(H2Oinitf, HDOinitf, nH2O, nHDO, savepath::String; showonly=false, watersat=nothing, globvars...) 
+function plot_water_profile(atmdict, savepath::String; showonly=false, watersat=nothing, H2Oinitf=nothing, globvars...)  # H2Oinitf, HDOinitf, nH2O, nHDO, 
     #=
     Plots the water profile in mixing ratio and number densities, in two panels.
 
@@ -805,39 +805,53 @@ function plot_water_profile(H2Oinitf, HDOinitf, nH2O, nHDO, savepath::String; sh
     =#
 
     GV = values(globvars)
-    @assert all(x->x in keys(GV), [:plot_grid])
+    @assert all(x->x in keys(GV), [:plot_grid, :all_species, :non_bdy_layers])
 
-    fig = figure(figsize=(4,6))
-    ax = gca()
-    plot_bg(ax)
-    ax.tick_params(axis="x", which="minor", bottom=true, top=true)
+    fig, ax = subplots(1, 3, sharey=true, figsize=(10,6))
+    for a in ax
+        plot_bg(a)
+        a.tick_params(axis="x", which="minor", bottom=true, top=true)
+    end
+    subplots_adjust(wspace=0.12)
 
-    ax1col = "#88527F"
+    # ax1col = "#88527F"
+    # ax2col = "#429EA6" 
+    col = "#2733ff"
     
-    # mixing ratio in PPM axis
-    ax.semilogx(convert(Array{Float64}, H2Oinitf)/1e-6, GV.plot_grid, color=ax1col, linewidth=2)
-    ax.semilogx(convert(Array{Float64}, HDOinitf)/1e-6, GV.plot_grid, color=ax1col, linestyle="--", linewidth=2)
-    ax.set_xlabel("Volume Mixing Ratio [ppm]", color=ax1col)
-    ax.set_ylabel("Altitude [km]")
-    ax.tick_params(axis="x", labelcolor=ax1col)
-    ax.set_xticks(collect(logrange(1e-6, 1e2, 5)))
+    # mixing ratio axis
+    # to get in ppmv, divide the mixing ratio by 1e-6. 
+    ax[1].semilogx(atmdict[:H2O] ./ n_tot(atmdict; globvars...), GV.plot_grid, color=col, linewidth=2)
+    ax[1].semilogx(atmdict[:HDO] ./ n_tot(atmdict; globvars...), GV.plot_grid, color=col, linestyle="--", linewidth=2)
+    ax[1].set_xlabel("Mixing Ratio")
+    ax[1].set_ylabel("Altitude (km)")
+    # ax[1].tick_params(axis="x", labelcolor=ax1col)
+    ax[1].set_xticks(collect(logrange(1e-12, 1e-2, 6)))
 
     # LEgend
     L2D = PyPlot.matplotlib.lines.Line2D
     lines = [L2D([0], [0], color="black"),
              L2D([0], [0], color="black", linestyle="--")]
-    ax.legend(lines, [L"H_2O", "HDO"], fontsize=12)#, loc="center left")
+    ax[1].legend(lines, [string_to_latexstr("H2O"), "HDO"], fontsize=12)
 
-    ax2 = ax.twiny()
-    ax2col = "#429EA6" 
-    ax2.tick_params(axis="x", labelcolor=ax2col)
-    ax2.semilogx(convert(Array{Float64}, nH2O), GV.plot_grid, color=ax2col, linewidth=2, label=L"H$_2$O")
-    ax2.semilogx(convert(Array{Float64}, nHDO), GV.plot_grid, color=ax2col, linestyle="--", linewidth=2, label="HDO")
-    ax2.set_xlabel(L"Number density [cm$^{-3}$]", color=ax2col, y=1.07)
-    ax2.set_xticks(collect(logrange(1e-4, 1e16, 6)))
-    for side in ["top", "bottom", "left", "right"]
-        ax2.spines[side].set_visible(false)
-    end
+    # ax2 = ax.twiny()
+    
+    # Number density 
+    # ax[2].tick_params(axis="x", labelcolor=ax2col)
+    ax[2].semilogx(atmdict[:H2O], GV.plot_grid, color=col, linewidth=2, label=string_to_latexstr("H2O"))
+    ax[2].semilogx(atmdict[:HDO], GV.plot_grid, color=col, linestyle="--", linewidth=2, label="HDO")
+    ax[2].set_xlabel(L"Number density (cm$^{-3}$)")
+    ax[2].set_xticks(collect(logrange(1e-4, 1e16, 6)))
+    # for side in ["top", "bottom", "left", "right"]
+    #     ax2.spines[side].set_visible(false)
+    # end
+
+    # ppm
+    ax[3].semilogx((atmdict[:H2O] ./ n_tot(atmdict; globvars...)) ./ 1e-6, GV.plot_grid, color=col, linewidth=2)
+    ax[3].semilogx((atmdict[:HDO] ./ n_tot(atmdict; globvars...)) ./ 1e-6, GV.plot_grid, color=col, linestyle="--", linewidth=2)
+    ax[3].set_xlabel("ppmv")
+    # ax[1].set_ylabel("Altitude (km)")
+    # ax[1].tick_params(axis="x", labelcolor=ax1col)
+    # ax[1].set_xticks(collect(logrange(1e-12, 1, 7)))
 
     # suptitle(L"H$_2$O and HDO vertical profiles", y=1.05)
     # save it
@@ -849,10 +863,10 @@ function plot_water_profile(H2Oinitf, HDOinitf, nH2O, nHDO, savepath::String; sh
     end
 
     # Will make a plot of the water profile and the saturation vapor pressure curve on the same axis for comparison
-    if watersat != nothing
+    if (watersat != nothing) & (H2Oinitf!=nothing)
         fig, ax = subplots(figsize=(4,6))
         plot_bg(ax)
-        semilogx(convert(Array{Float64}, H2Oinitf), GV.plot_grid, color=ax1col, linewidth=3, label=L"H$_2$O initial fraction")
+        semilogx(convert(Array{Float64}, H2Oinitf), GV.plot_grid, color=col, linewidth=3, label=L"H$_2$O initial fraction")
         semilogx(convert(Array{Float64}, watersat[2:end-1]), GV.plot_grid, color="black", alpha=0.5, linewidth=3, label=L"H$_2$O saturation")
         xlabel("Mixing ratio", fontsize=18)
         ylabel("Altitude [km]", fontsize=18)

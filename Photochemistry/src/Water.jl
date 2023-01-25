@@ -112,7 +112,7 @@ function setup_water_profile!(atmdict; dust_storm_on=false, make_sat_curve=false
     end
 
 
-    plot_water_profile(H2Oinitfrac, HDOinitfrac, atmdict[:H2O], atmdict[:HDO], GV.results_dir*GV.sim_folder_name, watersat=satarray, plot_grid=GV.plot_grid, showonly=showonly)
+    plot_water_profile(atmdict, GV.results_dir*GV.sim_folder_name; watersat=satarray, plot_grid=GV.plot_grid, showonly=showonly, globvars...)
 end 
 
 function water_tanh_prof(z; f=10, z0=62, dz=11)

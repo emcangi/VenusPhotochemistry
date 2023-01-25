@@ -308,6 +308,53 @@ function n_tot(atmdict::Dict{Symbol, Vector{ftype_ncur}}; globvars...)
     return vec(sum(ndensities, dims=1)) 
 end
 
+function optical_depth(n_cur_densities; globvars...)
+    #=
+    Given the current state (atmdict), this populates solarabs, a 1D array of 1D arrays 
+    (which is annoying, but required for using BLAS.axpy! for some inscrutable reason) 
+    with the optical depth of the atmosphere. The shape of solar abs is 124 elements, each 
+    its own array of 2000 elements. 
+    =#
+    
+    GV = values(globvars)
+    @assert all(x->x in keys(GV), [:num_layers, :Jratelist, :absorber, :crosssection, :dz])
+    
+    nlambda = 2000
+    
+    # Initialize the solar absorption array with 0s for all wavelengths.
+    solarabs = Array{Array{Float64}}(undef, GV.num_layers)
+    for i in range(1, length=GV.num_layers)
+        solarabs[i] = zeros(Float64, nlambda)
+    end
+    
+    for jspecies in GV.Jratelist
+        species = GV.absorber[jspecies]
+
+        # println("n_cur_densities keys $(keys(n_cur_densities))")
+        jcolumn = convert(Float64, 0.)
+
+        for ialt in [GV.num_layers:-1:1;]
+            #get the (overhead) vertical column of the absorbing constituent
+            jcolumn += convert(Float64, n_cur_densities[species][ialt])*GV.dz
+
+           
+            # add the total extinction to solarabs:
+            # multiplies air column density (N, #/cm^2) at all wavelengths by crosssection (σ)
+            # to get optical depth (τ). This is an override of axpy! to use the
+            # full arguments. For the equation Y' = alpha*X + Y:
+            # ARG 1: n (length of arrays in ARGS 3, 5)
+            # ARG 2: alpha, a scalar.
+            # ARG 3: X, an array of length n.
+            # ARG 4: the increment of the index values of X, maybe?
+            # ARG 5: Y, an array of length n
+            # ARG 6: increment of index values of Y, maybe?
+            
+            BLAS.axpy!(nlambda, jcolumn, GV.crosssection[jspecies][ialt+1], 1, solarabs[ialt], 1)
+        end
+    end
+    return solarabs
+end
+
 function reduced_mass(mA, mB)
     #=
     Returns reduced mass.

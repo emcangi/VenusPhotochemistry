@@ -467,44 +467,15 @@ function update_Jrates!(n_cur_densities::Dict{Symbol, Array{ftype_ncur, 1}}; glo
     GV = values(globvars)
     @assert all(x->x in keys(GV), [:absorber, :dz, :crosssection, :Jratelist, :num_layers, :solarflux])
 
-    # Initialize an array, length=number of active layers
-    # Each sub-array is an array of length 2000, corresponding to 2000 wavelengths.
-    solarabs = Array{Array{Float64}}(undef, GV.num_layers)
-    for i in range(1, length=GV.num_layers)
-        solarabs[i] = zeros(Float64, 2000)#2000)
-    end
-
-    nalt = size(solarabs, 1)
-    nlambda = size(solarabs[1],1)
-
-    for jspecies in GV.Jratelist
-        species = GV.absorber[jspecies]
-
-        jcolumn = convert(Float64, 0.)
-        for ialt in [nalt:-1:1;]
-            #get the vertical column of the absorbing constituent
-            jcolumn += convert(Float64, n_cur_densities[species][ialt])*GV.dz
-
-            # add the total extinction to solarabs:
-            # multiplies air column density (N, #/cm^2) at all wavelengths by crosssection (σ)
-            # to get optical depth (τ). This is an override of axpy! to use the
-            # full arguments. For the equation Y' = alpha*X + Y:
-            # ARG 1: n (length of arrays in ARGS 3, 5)
-            # ARG 2: alpha, a scalar.
-            # ARG 3: X, an array of length n.
-            # ARG 4: the increment of the index values of X, maybe?
-            # ARG 5: Y, an array of length n
-            # ARG 6: increment of index values of Y, maybe?
-            BLAS.axpy!(nlambda, jcolumn, GV.crosssection[jspecies][ialt+1], 1, solarabs[ialt], 1)
-        end
-    end
+    nlambda = 2000
+    solarabs = optical_depth(n_cur_densities; globvars...)
 
     # solarabs now records the total optical depth of the atmosphere at
     # each wavelength and altitude
 
     # actinic flux at each wavelength is solar flux diminished by total
     # optical depth
-    for ialt in [1:nalt;]
+    for ialt in [1:GV.num_layers;]
         solarabs[ialt] = GV.solarflux[:,2] .* exp.(-solarabs[ialt])
     end
 
@@ -520,7 +491,7 @@ function update_Jrates!(n_cur_densities::Dict{Symbol, Array{ftype_ncur, 1}}; glo
     # (a·b) = aa + ab + ab + bb etc that kind of thing
     for j in GV.Jratelist
         n_cur_densities[j] = zeros(GV.num_layers)
-        for ialt in [1:nalt;]
+        for ialt in [1:GV.num_layers;]
             n_cur_densities[j][ialt] = ftype_ncur(BLAS.dot(nlambda, solarabs[ialt], 1, GV.crosssection[j][ialt+1], 1))
         end
     end
@@ -997,7 +968,7 @@ function update!(n_current::Dict{Symbol, Array{ftype_ncur, 1}}, t, dt; abstol=1e
     # retrieve the shortlived species from their storage and flatten them
     n_short = flatten_atm(external_storage, GV.active_shortlived; GV.num_layers)
 
-    n_current = compile_ncur_all(nend; GV.active_longlived, GV.active_shortlived, GV.inactive_species, GV.num_layers)
+    n_current = compile_ncur_all(nend; n_short=n_short, n_inactive=GV.n_inactive, GV.active_longlived, GV.active_shortlived, GV.inactive_species, GV.num_layers)
 
     # ensure Jrates are included in n_current
     update_Jrates!(n_current; GV.Jratelist, GV.crosssection, GV.num_layers, GV.absorber, GV.dz, GV.solarflux)
@@ -1098,9 +1069,7 @@ function converge(n_current::Dict{Symbol, Array{ftype_ncur, 1}}, log_t_start, lo
                 # end
             end
         end
-
         write_to_log(logfile, ["Final time after linear timesteps: $(total_time) with $(iters) iters"], mode="a")
-
     # Static timesteps, logarithmically spaced
     elseif GV.timestep_type=="static-log"
         log_time_steps = 10. .^(range(log_t_start, stop=log_t_end, length=GV.n_steps))
@@ -1226,8 +1195,6 @@ if reinitialize_atmo == true
     for J in Jratelist
         n_current[J] = zeros(num_layers)
     end
-
-    # n_current[:CO2] .= 0.965 * ntot_at_lowerbdy
 else
     n_current = get_ncurrent(initial_atm_file)
 end
@@ -1238,7 +1205,7 @@ end
 if adding_new_species==true
     if converge_which == "neutrals"
 
-        starting_density = n_tot(n_current; all_species=orig_neutrals)
+        starting_density = n_tot(n_current; all_species=[orig_neutrals..., orig_ions...])
 
         for nn in new_neutrals
             n_current[nn] = zeros(num_layers)
@@ -1251,7 +1218,12 @@ if adding_new_species==true
                     try 
                         n_current[nn] = new_neutrals_MRs[nn] * starting_density
                     catch KeyError
-                        println("No entry for $nn, using zeros.")
+                        if occursin("D", string(nn))
+                            println("Applying D/H ratio for D species $nn")
+                            n_current[nn] = DH * n_current[D_H_analogues[nn]]
+                        else
+                            println("No entry for $nn, using zeros.")
+                        end
                     end
                 else 
                     try 
@@ -1262,9 +1234,13 @@ if adding_new_species==true
                 end
             end
         end
+
+        # n_current[:N2] = starting_density .* new_neutrals_MRs[:N2]
+        # println("Alert: I just reset N2 to 3.4% of the total density.")
+
     elseif converge_which == "ions"
-        throw("Haven't set up converge ions yet")
-        println("Converging ions: $(new_ions)")
+
+        starting_density = n_tot(n_current; all_species=[orig_neutrals..., orig_ions...])
 
         for ni in new_ions
             n_current[ni] = zeros(num_layers)
@@ -1272,10 +1248,23 @@ if adding_new_species==true
 
         if use_nonzero_initial_profiles
             println("Initializing non-zero profiles for $(new_ions)")
-            # first fill in the H-bearing ions from data-inspired profiles
+
             for ni in setdiff(new_ions, keys(D_H_analogues))
-                n_current[ni] = reshape(readdlm("../Resources/initial_profiles/$(string(ni))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
+                if @isdefined new_neutrals_MRs 
+                    try 
+                        n_current[ni] = new_ions_MRs[ni] * starting_density
+                    catch KeyError
+                        println("No entry for $ni, using zeros.")
+                    end
+                else 
+                    try 
+                        n_current[ni] = reshape(readdlm("../Resources/initial_profiles/$(string(ni))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
+                    catch 
+                        println("No initial guess found for $(ni). Initial profile will be zero everywhere.")
+                    end
+                end
             end
+
             # Then create profiles for the D-bearing analogues based on the H-bearing species profiles
             for ni in intersect(new_ions, keys(D_H_analogues))
                 n_current[ni] = DH .* n_current[ni]
@@ -1296,7 +1285,11 @@ if adding_new_species==true
             for nn in new_neutrals
                 
                 if @isdefined new_neutrals_MRs 
-                    n_current[nn] = new_neutrals_MRs[nn] * starting_density
+                    try 
+                        n_current[nn] = new_neutrals_MRs[nn] * starting_density
+                    catch KeyError
+                        println("No entry for $nn, using zeros.")
+                    end
                 else 
                     try 
                         n_current[nn] = reshape(readdlm("../Resources/initial_profiles/$(string(nn))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
@@ -1308,7 +1301,11 @@ if adding_new_species==true
 
             for ni in setdiff(new_ions, keys(D_H_analogues))
                 if @isdefined new_ions_MRs 
-                    n_current[ni] = new_ions_MRs[ni] * starting_density
+                    try 
+                        n_current[ni] = new_ions_MRs[ni] * starting_density
+                    catch KeyError
+                        println("No entry for $ni, using zeros.")
+                    end
                 else 
                     try 
                         n_current[ni] = reshape(readdlm("../Resources/initial_profiles/$(string(ni))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
@@ -1345,9 +1342,13 @@ if reinitialize_water_profile
     
     println("$(Dates.format(now(), "(HH:MM:SS)")) Setting up the water profile...")
     venus_water_init(n_current, 1e-6; n_alt_index, all_species, DH)
+end
 
+if :H2O in keys(n_current)
     # Calculate precipitable microns, including boundary layers (assumed same as nearest bulk layer)
     H2Oprum = precip_microns(:H2O, [n_current[:H2O][1]; n_current[:H2O]; n_current[:H2O][end]]; molmass)
+end 
+if :HDO in keys(n_current)
     HDOprum = precip_microns(:HDO, [n_current[:HDO][1]; n_current[:HDO]; n_current[:HDO][end]]; molmass)
 end
 
@@ -1783,7 +1784,7 @@ try
     push!(PARAMETERS_CONDITIONS, ("TOTAL_HDO", HDOprum, "pr micrometers"))
     push!(PARAMETERS_CONDITIONS, ("TOTAL_WATER", H2Oprum+HDOprum, "pr micrometers"))
 catch y
-    print("No water right now: $y")
+    println("No water right now: $y")
 end
     
 write_to_log(logfile, ["Description: $(optional_logging_note)"], mode="w")
@@ -2024,8 +2025,9 @@ t7 = time()
 
 # Write out the parameters as the final step 
 
-XLSX.writetable("$(results_dir)$(sim_folder_name)/PARAMETERS.xlsx", "General"=>PARAMETERS_GEN, "AtmosphericConditions"=>PARAMETERS_CONDITIONS, "SpeciesLists"=>PARAMETERS_SPLISTS,
-                "Solver"=>PARAMETERS_SOLVER, "Crosssections"=>PARAMETERS_XSECTS, "BoundaryConditions"=>PARAMETERS_BCS)
+XLSX.writetable("$(results_dir)$(sim_folder_name)/PARAMETERS.xlsx", "General"=>PARAMETERS_GEN, "AtmosphericConditions"=>PARAMETERS_CONDITIONS, 
+                "SpeciesLists"=>PARAMETERS_SPLISTS, "Solver"=>PARAMETERS_SOLVER, "Crosssections"=>PARAMETERS_XSECTS, "BoundaryConditions"=>PARAMETERS_BCS, 
+                "TemperatureArrays"=>PARAMETERS_TEMPERATURE_ARRAYS)
 println("Saved parameter spreadsheet")
 write_to_log(logfile, "Simulation total runtime $(format_sec_or_min(t7-t1))", mode="a")
 println("Simulation finished!")
