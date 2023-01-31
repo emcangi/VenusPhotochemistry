@@ -1205,7 +1205,7 @@ end
 if adding_new_species==true
     if converge_which == "neutrals"
 
-        starting_density = n_tot(n_current; all_species=[orig_neutrals..., orig_ions...])
+        starting_density = n_tot(n_current; all_species=[converged_neutrals..., converged_ions...])
 
         for nn in new_neutrals
             n_current[nn] = zeros(num_layers)
@@ -1240,7 +1240,7 @@ if adding_new_species==true
 
     elseif converge_which == "ions"
 
-        starting_density = n_tot(n_current; all_species=[orig_neutrals..., orig_ions...])
+        starting_density = n_tot(n_current; all_species=[converged_neutrals..., converged_ions...])
 
         for ni in new_ions
             n_current[ni] = zeros(num_layers)
@@ -1271,7 +1271,7 @@ if adding_new_species==true
             end
         end
     elseif converge_which == "both" 
-        starting_density = n_tot(n_current; all_species=union(orig_neutrals, orig_ions))
+        starting_density = n_tot(n_current; all_species=union(converged_neutrals, converged_ions))
 
         for nn in new_neutrals
             n_current[nn] = zeros(num_layers)
@@ -1360,6 +1360,9 @@ end
 # of the atmospheric densities--the solver doesn't handle their values currently.
 const external_storage = Dict{Symbol, Vector{Float64}}([j=>n_current[j] for j in union(short_lived_species, inactive_species, Jratelist)])
 const n_inactive = flatten_atm(n_current, inactive_species; num_layers)
+
+# WARNING: If you are converging a CO2-only diffusion atmosphere, you may have a problem here
+# where external_storage is empty. If that's the case, just give it a fake Jrate to shut it up until you get to doing chemistry.
 
 # **************************************************************************** #
 #                                                                              #

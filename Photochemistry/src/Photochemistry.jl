@@ -118,8 +118,10 @@ top_mechanisms,
 # ReactionNetwork.jl
 filter_network, 
 format_Jrates, 
+load_network_and_make_functions,
 load_reaction_network, 
 log_reactions, 
+modify_rxn_spreadsheet,
 
 # Temperature.jl
 T,
@@ -130,6 +132,7 @@ T,
     effusion_velocity, 
     escape_probability, 
     escaping_hot_atom_production, 
+    final_escape,
     nonthermal_escape_flux,
     flux_pos_and_neg,
     get_flux, 

@@ -240,7 +240,7 @@ function load_from_paramlog(folder; quiet=true, globvars...)
     Tprof_for_Hs = Dict("neutral"=>Tn_arr, "ion"=>Ti_arr);
     Tprof_for_diffusion = Dict("neutral"=>Tn_arr, "ion"=>Tplasma_arr)
     Hs_dict = Dict{Symbol, Vector{Float64}}([sp=>scaleH(alt, sp, Tprof_for_Hs[charge_type(sp)]; molmass) for sp in all_species]); 
-    water_bdy = get_param("WATER_BDY", df_atmcond) * 1e5 # It's stored in km but we want it in cm
+    # water_bdy = get_param("WATER_BDY", df_atmcond) * 1e5 # It's stored in km but we want it in cm
 
     # Boundary conditions
     df_bcs = DataFrame(XLSX.readtable("$(folder)PARAMETERS.xlsx", "BoundaryConditions"));
@@ -262,8 +262,8 @@ function load_from_paramlog(folder; quiet=true, globvars...)
                    "Tprof_for_diffusion"=>Tprof_for_diffusion,
                    "Hs_dict"=>Hs_dict,
                    "speciesbclist"=>speciesbclist,
-                   "rxn_spreadsheet"=>rxn_spreadsheet,
-                   "water_bdy"=>water_bdy)
+                   "rxn_spreadsheet"=>rxn_spreadsheet)
+                   #"water_bdy"=>water_bdy)
 
     return vardict
 end

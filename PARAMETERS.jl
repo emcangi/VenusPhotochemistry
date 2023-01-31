@@ -17,6 +17,13 @@ using DataFrames
 #                                                                              #
 # **************************************************************************** #
 
+# Stuff you should modify when trying to converge atmospheres that is below this block (go look for it):
+# maxlogdt (for converging to a smaller timestep if doing ions)
+# ions_included (if converging neutrals only)
+# converge_which (for telling the code how to initialize things if converging neutrals, ions, or both)
+# adding_new_species: whether you are adding new species into the mix
+# converged_neutrals, new_neutrals, converged_ions, new_ions: Put new species being introduced for the first time into the new lists.
+
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
 # !!                                                                        !! #
 # !!                      !!!!! SUPER IMPORTANT !!!!!                       !! #
@@ -27,10 +34,10 @@ using DataFrames
 reinitialize_atmo = false#true
 
 # Basic simulation parameters
-const optional_logging_note = "Run some more to make sure everything is stable, turn on non-thermal escape" # Simulation goal
+const optional_logging_note = "Redo mean case with correct escape velocities" # Simulation goal
 const simset = "VenusPaper"
-const results_version = "v0.7"  # Helps keep track of attempts 
-const initial_atm_file = "converged_v0.6_all_in.h5"#"INITIAL_GUESS.h5" 
+const results_version = "v0.8"  # Helps keep track of attempts 
+const initial_atm_file = "converged_v0.7_done.h5"#"INITIAL_GUESS.h5" 
 const seasonal_cycle = false # False for Venus
 const timestep_type = "dynamic-log" #"log-linear" # basically never use this one: "static-log" 
 
@@ -40,6 +47,7 @@ const exptype =  "temperature" #"water" # "insolation"#
 # water
 const water_case = "1e-6" # for Venus, this is just the mixing ratio.
 const water_mixing_ratio = 1e-6 #
+const reinitialize_water_profile = true # false # setting to true will set the water profile = water_mixing_ratio everywhere
 # const update_water_profile = false # this is for modifying the profile during cycling, currently doesn't work well
 
 # solar cycle
@@ -51,15 +59,16 @@ const solarcyc = "mean" # "max" # "min"#
 # !!                                                                        !! #
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
 
-# Set up temperature and folder tag name according to the type of simulation set
 
-const solarfile = "VENUSsolarphotonflux_solarmean.dat" 
-const controltemps = [735., 170., 260.]
+# Set up tag name according to the type of simulation set
 const tag = "venus_temp_$(results_version)"
 
-# Temperature and water
+# Temperature, solar cycle, water
+const solarfiledict = Dict("mean"=>"VENUSsolarphotonflux_solarmean.dat", "min"=>"VENUSsolarphotonflux_solarmin.dat", "max"=>"VENUSsolarphotonflux_solarmax.dat")
+const tempdict = Dict("min"=>200., "mean"=>260., "max"=>320.)
+const solarfile = solarfiledict[solarcyc]
+const controltemps = [735., 170., tempdict[solarcyc]]
 const meantemps = [735., 170., 260.] # Used for saturation vapor pressure. DON'T CHANGE!
-const reinitialize_water_profile = false#true # false # setting to true will set the water profile = water_mixing_ratio everywhere
 
 # Tolerance and timespans 
 const maxlogdt = seasonal_cycle==true ? 5 : 16
@@ -71,17 +80,16 @@ const abs_tol = 1e-12
 # More basics that don't frequently change
 const ions_included = true # false # 
 const SZA = 60 # degrees 
-const fixed_species = []#:H2O] # here you may enter any species that you want to be completely fixed (no updates to densities from chemistry or transport)
+const fixed_species = [] # here you may enter any species that you want to be completely fixed (no updates to densities from chemistry or transport)
 
 # Tags, shortcodes, and filenames
 const hrshortcode, rshortcode = generate_code(ions_included, controltemps[1], controltemps[2], controltemps[3], water_case, solarcyc)
 const sim_folder_name = "$(hrshortcode)_$(rshortcode)_$(tag)"
 const final_atm_file = "final_atmosphere.h5"
-const reaction_network_spreadsheet = code_dir*"REACTION_NETWORK.xlsx" # "REACTION_NETWORK_MIN_IONOSPHERE.xlsx" #
+const reaction_network_spreadsheet = code_dir*"REACTION_NETWORK_VENUS.xlsx" # "REACTION_NETWORK_MIN_IONOSPHERE.xlsx" #
 
 # Ionospheric chemistry and non-thermal escape
 const nontherm = ions_included==true ? true : false
-println("ALERT: Non-thermal escape is off. Remember to turn back on.")
 const converge_which = "both" #  "ions"  # "neutrals" # 
 const e_profile_type = ions_included==true ? "quasineutral" : "none" # Other options include: "O2+" # "constant"
 const remove_unimportant = true # Whether to use a slightly smaller list of species and reactions (removing minor species that Roger had in his model)
@@ -170,6 +178,8 @@ const speciesbclist=Dict(:CO2=>Dict("n"=>[0.965*ntot_at_lowerbdy, NaN], "f"=>[Na
                          :NO=>Dict("n"=>[5.5e-9*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0]),
                          :N2=>Dict("n"=>[0.034*ntot_at_lowerbdy, NaN]),
 
+                         #:H2O=>Dict("n"=>[1e-6*ntot_at_lowerbdy, NaN]),
+
                          :H=> Dict("v"=>[NaN, effusion_velocity(Tn_arr[end], 1.0; zmax)], "ntf"=>[NaN, "see boundaryconditions()"]),
                          :D=> Dict("v"=>[NaN, effusion_velocity(Tn_arr[end], 2.0; zmax)], "ntf"=>[NaN, "see boundaryconditions()"]),
                          :H2=>Dict("f"=>[0., NaN], "v"=>[NaN, effusion_velocity(Tn_arr[end], 2.0; zmax)], "ntf"=>[NaN, "see boundaryconditions()"]),  # velocities are in cm/s
@@ -189,7 +199,7 @@ const speciesbclist=Dict(:CO2=>Dict("n"=>[0.965*ntot_at_lowerbdy, NaN], "f"=>[Na
 unimportant = [:CNpl,:HCNpl,:HCNHpl,:HN2Opl,:NH2pl,:NH3pl,:CH,:CN,:HCN,:HNO,:HD2pl]  # :NH,:NH2,
 
 # Neutrals --------------------------------------------------------------------
-const orig_neutrals = [:Ar, :CO, :CO2, :C, :CH, :CN, 
+const converged_neutrals = [:Ar, :CO, :CO2, :C, :CH, :CN, 
                        :H, :H2, :H2O, :H2O2, :HOCO, :HO2, 
                        :HCN, :HCO, :HNO,
                        :N2, :N2O, :NO, :NO2, :N, :NH, :NH2, :Nup2D,
@@ -198,7 +208,7 @@ const orig_neutrals = [:Ar, :CO, :CO2, :C, :CH, :CN,
                        # Deuterated
                        :D, :DCO, :DO2, :DOCO, :HD, :HDO, :HDO2, :OD,
                        ]; 
-const conv_neutrals = remove_unimportant==true ? setdiff(orig_neutrals, unimportant) : orig_neutrals
+const conv_neutrals = remove_unimportant==true ? setdiff(converged_neutrals, unimportant) : converged_neutrals
 const new_neutrals = []; 
 const new_neutrals_MRs = Dict(:HO2=>1e-14, 
                                :N2=>0.034, :NO2=>1e-10, :N2O=>1e-12, :H2O=>water_mixing_ratio, :NO=>5.5e-9, :CO=>4.5e-6, :O=>1e-8, :O1D=>1e-13,
@@ -206,14 +216,14 @@ const new_neutrals_MRs = Dict(:HO2=>1e-14,
 const neutral_species = [conv_neutrals..., new_neutrals...];
 
 # Ions -------------------------------------------------------------------------
-const orig_ions = [:CO2pl, :Opl, :O2pl, # Nair minimal ionosphere 
+const converged_ions = [:CO2pl, :Opl, :O2pl, # Nair minimal ionosphere 
                    :Arpl, :ArHpl, :ArDpl, 
-                   :Cpl, :CHpl,  :COpl, # :CNpl,
+                   :Cpl, :CHpl,  :COpl, 
                    :Hpl, :Dpl, :H2pl, :HDpl, :H3pl, :H2Dpl, 
                    :H2Opl,  :HDOpl, :H3Opl, :H2DOpl, 
                    :HO2pl, :HCOpl, :HCO2pl, :DCOpl, :HOCpl, :DOCpl, :DCO2pl, 
-                   :HNOpl, # :HCNpl, :HCNHpl, :HN2Opl,  
-                   :Npl, :N2pl, :NHpl, :N2Hpl,  :N2Dpl, :N2Opl,:NO2pl, # :NH2pl, :NH3pl,
+                   :HNOpl, 
+                   :Npl, :N2pl, :NHpl, :N2Hpl,  :N2Dpl, :N2Opl,:NO2pl,
                    :NOpl, :NO2pl, 
                    :OHpl, :ODpl,
                    ];
@@ -221,7 +231,7 @@ const new_ions = [     ];
 # not added because they were trapped in "unimportant": :HCNpl, :HCNHpl, :HN2Opl, :NH2pl,:NH3pl, :CNpl,
 const new_ions_MRs = Dict(:NOpl=>1e-14, :Opl=>1e-13, :O2pl=>1e-13, :CO2pl=>1e-14)
 
-const ion_species = remove_unimportant==true ? setdiff([orig_ions..., new_ions...], unimportant) : [orig_ions..., new_ions...]
+const ion_species = remove_unimportant==true ? setdiff([converged_ions..., new_ions...], unimportant) : [converged_ions..., new_ions...]
 
 # Full species list -------------------------------------------------------------
 const all_species = [neutral_species..., ion_species...];
