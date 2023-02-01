@@ -59,7 +59,16 @@ function electron_density(atmdict; ne=1e5, globvars...)
     return E
 end
 
-function column_density(n::Vector; start_alt=1)
+function column_density_species(atmdict, sp; start_alt=0., end_alt=250e5, globvars...)
+    #=
+    Returns the column density of species sp in atmosphere atmdict between the two altitudes (inclusive).
+    =#
+    GV = values(globvars)
+    @assert all(x->x in keys(GV), [:n_alt_index, :dz])
+    return sum(atmdict[sp][n_alt_index[start_alt]:n_alt_index[end_alt]] .* dz)
+end 
+
+function column_density(n::Vector; sp=nothing, start_alt=1)
     #=
     Returns column density above a given atmospheric layer. 
 
@@ -71,7 +80,7 @@ function column_density(n::Vector; start_alt=1)
     return sum(n[start_alt:end] .* dz)
 end
 
-function column_density_above(n_tot_by_alt::Vector)
+function column_density_above(n_tot_by_alt::Vector; sp=nothing)
     #=
     Returns an array where entries are the total integrated column density above
     that level of the atmosphere. e.g. the value at the topmost altitude is 
@@ -82,7 +91,7 @@ function column_density_above(n_tot_by_alt::Vector)
     col_above = zeros(size(n_tot_by_alt))
 
     for i in 1:num_layers
-        col_above[i] = column_density(n_tot_by_alt, start_alt=i+1)
+        col_above[i] = column_density(n_tot_by_alt; sp=sp, start_alt=i+1)
     end
 
     return col_above

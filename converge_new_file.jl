@@ -1185,7 +1185,7 @@ end
 println("$(Dates.format(now(), "(HH:MM:SS)")) Loading atmosphere")
 
 if reinitialize_atmo == true
-    # Start from zero density for all species except CO2. 
+    # Start from zero density for all species
     n_current = Dict{Symbol, Vector{Float64}}()
 
     for sp in all_species
@@ -1328,7 +1328,6 @@ if adding_new_species==true
         n_current[nj] = zeros(num_layers)
     end
 end
-
 
 #                        Initialize electron profile                            #
 #===============================================================================#
