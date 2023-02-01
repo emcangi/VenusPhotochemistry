@@ -1322,6 +1322,7 @@ if adding_new_species==true
     else
         throw("You asked to converge $(converge_which) which is not an allowable option")
     end
+    
     # Zero out the new Jrates
     for nj in newJrates
         n_current[nj] = zeros(num_layers)
