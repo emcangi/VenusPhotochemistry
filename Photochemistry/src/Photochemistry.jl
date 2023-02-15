@@ -39,6 +39,7 @@ unflatten_atm,
 # BasicUtilities.jl
 ## Standard, miscellaneous functions
     deletefirst, 
+    df_lookup,
     find_nonfinites, 
     fluxsymbol, 
     generate_code, 
@@ -84,6 +85,7 @@ populate_xsect_dict,
 
 # FileIO.jl
 create_folder,
+get_elapsed_time, 
 get_ncurrent, 
 searchdir, 
 search_subfolders, 
@@ -134,6 +136,7 @@ T,
     escape_probability, 
     escaping_hot_atom_production, 
     final_escape,
+    fractionation_factor, 
     nonthermal_escape_flux,
     flux_pos_and_neg,
     get_flux, 

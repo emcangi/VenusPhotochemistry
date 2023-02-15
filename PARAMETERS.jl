@@ -32,10 +32,10 @@ using DataFrames
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
 
 # Basic simulation parameters
-const optional_logging_note = "Converge further with all boundary conditions turned on (redoing with Venus escape energies)" # Simulation goal
+const optional_logging_note = "Try effusion velocity with ion temps for H+ and H2+ ions." # Simulation goal
 const simset = "VenusPaper"
-const results_version = "v0.6"  # Helps keep track of attempts 
-const initial_atm_file = "converged_v0.5_whole_atm.h5"#"converged_v0.4d_remaining_ions.h5"#"converged_v0.4c_H_ions.h5"# "converged_v0.4b_minor_ions.h5"# "converged_v0.4_basic_ionosphere.h5" 
+const results_version = "v0.7"  # Helps keep track of attempts 
+const initial_atm_file = "converged_v0.6_withRCE.h5"#"converged_v0.5_whole_atm.h5"#"converged_v0.4d_remaining_ions.h5"#"converged_v0.4c_H_ions.h5"# "converged_v0.4b_minor_ions.h5"# "converged_v0.4_basic_ionosphere.h5" 
       #"converged_v0.3_D_neutrals.h5"# "converged_v0.2_minor_neutrals.h5"# "converged_v0.1_major_neutrals.h5"# "converged_v0_CO2_diffusion.h5"# "converged_v0.7_done.h5"#"INITIAL_GUESS.h5" 
 const seasonal_cycle = false # False for Venus
 const timestep_type = "dynamic-log" #"log-linear" # basically never use this one: "static-log" 
@@ -186,8 +186,8 @@ const speciesbclist=Dict(:CO2=>Dict("n"=>[0.965*ntot_at_lowerbdy, NaN], "f"=>[Na
                          :H2=>Dict("v"=>[KoverH_lowerbdy, effusion_velocity(Tn_arr[end], 2.0; zmax)], "ntf"=>[NaN, "see boundaryconditions()"]),  # velocities are in cm/s
                          :HD=>Dict("v"=>[KoverH_lowerbdy, effusion_velocity(Tn_arr[end], 3.0; zmax)], "ntf"=>[NaN, "see boundaryconditions()"]), # REMOVED 0 FLUXES FOR H2, HD
 
-                         :Hpl=>Dict("v"=>[KoverH_lowerbdy, NaN], "f"=>[NaN, 1.6e7]),
-                         :H2pl=>Dict("v"=>[KoverH_lowerbdy, NaN], "f"=>[NaN, 2e5]),
+                         :Hpl=>Dict("v"=>[KoverH_lowerbdy, effusion_velocity(Ti_arr[end], 1.0; zmax)]),#, "f"=>[NaN, 1.6e7]),
+                         :H2pl=>Dict("v"=>[KoverH_lowerbdy, effusion_velocity(Ti_arr[end], 2.0; zmax)]),#, "f"=>[NaN, 2e5]),
                          :Opl=>Dict("v"=>[KoverH_lowerbdy, NaN], "f"=>[NaN, 5.2e6]),
                        );
 
@@ -397,7 +397,6 @@ push!(PARAMETERS_CONDITIONS, ("TEXO", T_exo, "K"));
 push!(PARAMETERS_CONDITIONS, ("MEAN_TEMPS", join(meantemps, " "), "K"));
 push!(PARAMETERS_CONDITIONS, ("WATER_MR", water_mixing_ratio, "mixing ratio"));
 push!(PARAMETERS_CONDITIONS, ("WATER_CASE", water_case, "whether running with 10x, 1/10th, or standard water in middle/upper atmo"));
-# push!(PARAMETERS_CONDITIONS, ("WATER_BDY", upper_lower_bdy/1e5, "km"))
 
 # This is so ugly because the XLSX package won't write columns of different lengths, so I have to pad all the shorter lists
 # with blanks up to the length of the longest list and also transform all the symbols into strings. 
