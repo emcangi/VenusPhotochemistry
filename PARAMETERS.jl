@@ -32,7 +32,7 @@ using DataFrames
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
 
 # Basic simulation parameters
-const optional_logging_note = "Try effusion velocity with ion temps for H+ and H2+ ions." # Simulation goal
+const optional_logging_note = "Fix lower boundary condition sign convention" # Simulation goal
 const simset = "VenusPaper"
 const results_version = "v0.7"  # Helps keep track of attempts 
 const initial_atm_file = "venus_H2O1e-6_converged_c1JKkl1M.h5" # "converged_v0.6_withRCE.h5"#"converged_v0.5_whole_atm.h5"#"converged_v0.4d_remaining_ions.h5"#"converged_v0.4c_H_ions.h5"# "converged_v0.4b_minor_ions.h5"# "converged_v0.4_basic_ionosphere.h5" #"converged_v0.3_D_neutrals.h5"# "converged_v0.2_minor_neutrals.h5"# "converged_v0.1_major_neutrals.h5"# "converged_v0_CO2_diffusion.h5"# "converged_v0.7_done.h5"#"INITIAL_GUESS.h5" 
@@ -247,12 +247,12 @@ const manual_speciesbclist=Dict(# major species neutrals at lower boundary (esti
                                 :HDO=>Dict("n"=>[DH*water_mixing_ratio*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0.]),
 
                                 # atomic H and D escape solely by photochemical loss to space, can also be mixed downward
-                                :H=> Dict("v"=>[KoverH_lowerbdy, NaN], # No thermal escape to space, appropriate for global average model
+                                :H=> Dict("v"=>[-KoverH_lowerbdy, NaN], # No thermal escape to space, appropriate for global average model
                                                 #                 ^^^ other options here:
                                                 #                 100 # representing D transport to nightside, NOT escape
                                                 #                 effusion_velocity(Tn_arr[end], 1.0; zmax) # thermal escape, negligible
                                           "ntf"=>[NaN, "see boundaryconditions()"]),
-                                :D=> Dict("v"=>[KoverH_lowerbdy, NaN], # No thermal escape to space, appropriate for global average model
+                                :D=> Dict("v"=>[-KoverH_lowerbdy, NaN], # No thermal escape to space, appropriate for global average model
                                                 #                 ^^^ other options here:
                                                 #                 100 # representing D transport to nightside, NOT escape
                                                 #                 effusion_velocity(Tn_arr[end], 2.0; zmax) # thermal escape, negligible
@@ -267,14 +267,14 @@ const manual_speciesbclist=Dict(# major species neutrals at lower boundary (esti
                                           "ntf"=>[NaN, "see boundaryconditions()"]),
 
                                 # unusued neutral boundary conditions
-                                #:O=> Dict("v"=>[KoverH_lowerbdy, NaN], "f"=>[NaN, 0.#=1.2e6=#]), # no effect on O profile
-                                #:N=>Dict("v"=>[KoverH_lowerbdy, NaN], "f"=>[NaN, 0.]),
-                                #:NO=>Dict("v"=>[KoverH_lowerbdy, NaN], #="n"=>[3e8, NaN],=# #="n"=>[5.5e-9*ntot_at_lowerbdy, NaN], =# "f"=>[NaN, 0.]),
+                                #:O=> Dict("v"=>[-KoverH_lowerbdy, NaN], "f"=>[NaN, 0.#=1.2e6=#]), # no effect on O profile
+                                #:N=>Dict("v"=>[-KoverH_lowerbdy, NaN], "f"=>[NaN, 0.]),
+                                #:NO=>Dict("v"=>[-KoverH_lowerbdy, NaN], #="n"=>[3e8, NaN],=# #="n"=>[5.5e-9*ntot_at_lowerbdy, NaN], =# "f"=>[NaN, 0.]),
 
                                 # assume no ion loss, appropriate for global average and small observed rates
-                                #:Hpl=>Dict("v"=>[KoverH_lowerbdy, 0.0 #=effusion_velocity(Ti_arr[end], 1.0; zmax)=#]),#, "f"=>[NaN, 1.6e7]),
-                                #:H2pl=>Dict("v"=>[KoverH_lowerbdy, 0.0 #=effusion_velocity(Ti_arr[end], 2.0; zmax)=#]),#, "f"=>[NaN, 2e5]),
-                                #:Opl=>Dict("v"=>[KoverH_lowerbdy, NaN], "f"=>[NaN, 0.0#=5.2e6=#]),
+                                #:Hpl=>Dict("v"=>[-KoverH_lowerbdy, 0.0 #=effusion_velocity(Ti_arr[end], 1.0; zmax)=#]),#, "f"=>[NaN, 1.6e7]),
+                                #:H2pl=>Dict("v"=>[-KoverH_lowerbdy, 0.0 #=effusion_velocity(Ti_arr[end], 2.0; zmax)=#]),#, "f"=>[NaN, 2e5]),
+                                #:Opl=>Dict("v"=>[-KoverH_lowerbdy, NaN], "f"=>[NaN, 0.0#=5.2e6=#]),
                                 );
 
 # add in downward mixing velocity boundary condition for all other species
@@ -283,7 +283,7 @@ for sp in all_species
     if sp in keys(manual_speciesbclist)
         auto_speciesbclist[sp] = manual_speciesbclist[sp]
     else
-        auto_speciesbclist[sp] = Dict("v"=>[KoverH_lowerbdy, 0.0])
+        auto_speciesbclist[sp] = Dict("v"=>[-KoverH_lowerbdy, 0.0])
     end
 end
 

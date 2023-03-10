@@ -36,6 +36,10 @@ function boundaryconditions(fluxcoef_dict, atmdict, M; nonthermal=true, globvars
         element in each row will eventually be multiplied by a density taken from the atmospheric 
         state dictionary, and the second element will be used as-is. That way, eventually the total
         change recorded in other functions is always #/cm³/s. 
+
+        Sign convention: The density-dependent terms (bc_dict[sp][:, 1]) are multiplied by -1 when the
+                         transport rates are computed in get_transport_PandL_rate. Density independent 
+                         terms (bc_dict[sp][:, 2]) are not.
     =#
     
     GV = values(globvars)
@@ -51,12 +55,21 @@ function boundaryconditions(fluxcoef_dict, atmdict, M; nonthermal=true, globvars
             println("No entry $(sp) in bcdict")
             continue
         end
- 
+
         # DENSITY
         try 
             # lower boundary
-            n_lower = [fluxcoef_dict[sp][2, :][1], fluxcoef_dict[sp][1, :][2]*these_bcs["n"][1]]
+            # get the eddy+molecular mixing velocities at the lower boundary of the atmosphere
+            v_lower_boundary_up = fluxcoef_dict[sp][1, # lower boundary cell, outside atmosphere
+                                                    2] # upward mixing velocity
+            v_lower_boundary_dn = fluxcoef_dict[sp][2, # bottom cell of atmosphere
+                                                    1] # downward mixing velocity
+
+            n_lower = [v_lower_boundary_dn, v_lower_boundary_up*these_bcs["n"][1]]
             try
+                # TODO: throw an error if density boundary condition
+                # is specified simultaneous with any flux or velocity
+                # condition
                 @assert all(x->!isnan(x), n_lower)
                 bc_dict[sp][1, :] .+= n_lower
             catch y
@@ -67,7 +80,16 @@ function boundaryconditions(fluxcoef_dict, atmdict, M; nonthermal=true, globvars
 
             # upper boundary
             try 
-                n_upper = [fluxcoef_dict[sp][end-1, :][2], fluxcoef_dict[sp][end, :][1]*these_bcs["n"][2]]
+                # get the eddy+molecular mixing velocities at the upper boundary of the atmosphere
+                v_upper_boundary_up = fluxcoef_dict[sp][end-1, # top cell of atmosphere
+                                                        2]     # upward mixing velocity
+                v_upper_boundary_dn = fluxcoef_dict[sp][end, # upper boundary cell, outside atmosphere
+                                                        1]   # downward mixing velocity
+ 
+                n_upper = [v_upper_boundary_up, v_upper_boundary_dn*these_bcs["n"][2]]
+                # TODO: throw an error if density boundary condition
+                # is specified simultaneous with any flux or velocity
+                # condition
                 @assert all(x->!isnan(x), n_upper)
                 bc_dict[sp][2, :] .+= n_upper
             catch y
@@ -84,7 +106,8 @@ function boundaryconditions(fluxcoef_dict, atmdict, M; nonthermal=true, globvars
         # FLUX 
         try 
             # lower boundary
-            f_lower = [0, -these_bcs["f"][1]/GV.dz]
+            f_lower = [0, these_bcs["f"][1]/GV.dz]
+            #             ^ no (-) sign, negative flux at lower boundary represents loss to surface
             try        
                 @assert all(x->!isnan(x), f_lower)
                 bc_dict[sp][1, :] .+= f_lower
@@ -97,6 +120,8 @@ function boundaryconditions(fluxcoef_dict, atmdict, M; nonthermal=true, globvars
             # upper boundary
             try 
                 f_upper = [0, -these_bcs["f"][2]/GV.dz]
+                #             ^ (-) sign needed so that positive flux at upper boundary represents loss to space
+                #             (see "Sign convention" note above)
                 @assert all(x->!isnan(x), f_upper)
                 bc_dict[sp][2, :] .+= f_upper
             catch y
@@ -113,7 +138,9 @@ function boundaryconditions(fluxcoef_dict, atmdict, M; nonthermal=true, globvars
         # VELOCITY
         try 
             # lower boundary
-            v_lower = [these_bcs["v"][1]/GV.dz, 0]
+            v_lower = [-these_bcs["v"][1]/GV.dz, 0]
+            #          ^ (-) sign needed so that negative velocity at lower boundary represents loss to surface
+            #          (see "Sign convention" note above)
 
             try
                 @assert all(x->!isnan(x), v_lower)
@@ -127,6 +154,9 @@ function boundaryconditions(fluxcoef_dict, atmdict, M; nonthermal=true, globvars
             # upper boundary
             try 
                 v_upper = [these_bcs["v"][2]/GV.dz, 0]
+                #          ^ no (-) sign needed,  positive velocity at upper boundary represents loss to space
+                #          (see "Sign convention" note above)
+
                 @assert all(x->!isnan(x), v_upper)
                 bc_dict[sp][2, :] .+= v_upper
             catch y
@@ -713,7 +743,7 @@ function fluxcoefs(sp::Symbol, Kv, Dv, H0v; globvars...)
     Hsu = zeros(GV.n_all_layers)
     H0u = zeros(GV.n_all_layers)
 
-    # Calculate the coefficients between this layer and the lower layer. 
+    # Downward transport from each altitude to the cell below
     Dl[2:end] = @. (Dv[sp][1:end-1] + Dv[sp][2:end]) /  2.0
     Kl[2:end] = @. (Kv[1:end-1] + Kv[2:end]) / 2.0
     Tl_n[2:end] = @. (GV.Tn[1:end-1] + GV.Tn[2:end]) / 2.0
@@ -723,17 +753,18 @@ function fluxcoefs(sp::Symbol, Kv, Dv, H0v; globvars...)
     Hsl[2:end] = @. (GV.Hs_dict[sp][1:end-1] + GV.Hs_dict[sp][2:end]) / 2.0
     H0l[2:end] = @. (H0v[charge_type(sp)][1:end-1] + H0v[charge_type(sp)][2:end]) / 2.0
 
-    # Handle the lower boundary layer:
-    Dl[1] = @. (1 + Dv[sp][1]) /  2.0
-    Kl[1] = @. (1 + Kv[1]) / 2.0
-    Tl_n[1] = @. (1 + GV.Tn[1]) / 2.0
-    Tl_p[1] = @. (1 + GV.Tp[1]) / 2.0
-    dTdzl_n[1] = @. (GV.Tn[1] - 1) / GV.dz
-    dTdzl_p[1] = @. (GV.Tp[1] - 1) / GV.dz
-    Hsl[1] = @. (1 + GV.Hs_dict[sp][1]) / 2.0
-    H0l[1] = @. (1 + H0v[charge_type(sp)][1]) / 2.0
+    # Downward transport away from the lower boundary layer, which is outside the model
+    # These should never be used but we need to fill the array
+    Dl[1] = Float64(NaN)
+    Kl[1] = Float64(NaN)
+    Tl_n[1] = Float64(NaN)
+    Tl_p[1] = Float64(NaN)
+    dTdzl_n[1] = Float64(NaN)
+    dTdzl_p[1] = Float64(NaN)
+    Hsl[1] = Float64(NaN)
+    H0l[1] = Float64(NaN)
 
-    # Now the coefficients between this layer and upper layer
+    # Upward transport from each altitude to the cell above
     Du[1:end-1] = @. (Dv[sp][1:end-1] + Dv[sp][2:end]) /  2.0
     Ku[1:end-1] = @. (Kv[1:end-1] + Kv[2:end]) / 2.0
     Tu_n[1:end-1] = @. (GV.Tn[1:end-1] + GV.Tn[2:end]) / 2.0
@@ -743,16 +774,16 @@ function fluxcoefs(sp::Symbol, Kv, Dv, H0v; globvars...)
     Hsu[1:end-1] = @. (GV.Hs_dict[sp][1:end-1] + GV.Hs_dict[sp][2:end]) / 2.0
     H0u[1:end-1] = @. (H0v[charge_type(sp)][1:end-1] + H0v[charge_type(sp)][2:end]) / 2.0
 
-    # Handle upper boundary layer:
-    Du[end] = @. (Dv[sp][end] + 1) /  2.0
-    Ku[end] = @. (Kv[end] + 1) / 2.0
-    Tu_n[end] = @. (GV.Tn[end] + 1) / 2.0
-    Tu_p[end] = @. (GV.Tp[end] + 1) / 2.0
-    dTdzu_n[end] = @. (1 - GV.Tn[end]) / GV.dz
-    dTdzu_p[end] = @. (1 - GV.Tp[end]) / GV.dz
-    Hsu[end] = @. (GV.Hs_dict[sp][end] + 1) / 2.0
-    H0u[end] = @. (H0v[charge_type(sp)][end] + 1) / 2.0
-
+    # Upwards flux from the upper boundary layer, which is outside the model
+    # These should never be used but we need to fill the array
+    Du[end] = Float64(NaN)
+    Ku[end] = Float64(NaN)
+    Tu_n[end] = Float64(NaN)
+    Tu_p[end] = Float64(NaN)
+    dTdzu_n[end] = Float64(NaN)
+    dTdzu_p[end] = Float64(NaN)
+    Hsu[end] = Float64(NaN)
+    H0u[end] = Float64(NaN)
 
     # two flux terms: eddy diffusion and gravity/thermal diffusion.
     # these are found in line 5 of Mike's transport_as_chemistry.pdf:
