@@ -928,9 +928,9 @@ end
 
 # thermal diffusion factors
 thermaldiff(sp) = get(Dict(:H=>-0.25, :H2=>-0.25, :D=>-0.25, :HD=>-0.25,
-                                :He=>-0.25, 
-                                :Hpl=>-0.25, :H2pl=>-0.25, :Dpl=>-0.25, :HDpl=>-0.25,
-                                :Hepl=>-0.25), sp, 0)
+                           :He=>-0.25,
+                           :Hpl=>-0.25, :H2pl=>-0.25, :Dpl=>-0.25, :HDpl=>-0.25,
+                           :Hepl=>-0.25), sp, 0)
 
 function update_diffusion_and_scaleH(species_list, atmdict::Dict{Symbol, Vector{ftype_ncur}}, D_coefs; globvars...) 
     #=
