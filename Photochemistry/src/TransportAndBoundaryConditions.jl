@@ -912,16 +912,23 @@ function Keddy(z::Vector, nt::Vector)
     Ouptut:
         k: eddy diffusion coefficients at all altitudes.
 
-    The functions used here are fits to the eddy profile in Zhang+2012.
+    # (Mike 2023 Feb 20 switched to Fox and Sung 2001 eddy diffusion)
+
     =#
 
-    z_in_km = z ./ 1e5
+    # k = 7e12*(nt .^ -0.5) # Fox and Sung 2001 low solar activity
+    k = 8e12*(nt .^ -0.5) # Fox and Sung 2001 mean solar activity = (low + high) / 2
+    # k = 9e12*(nt .^ -0.5) # Fox and Sung 2001 high solar activity
+    # k = 14e12*(nt .^ -0.5) # Fox and Sung 2001 citing von Zahn 1980
+    
 
-    k = zeros(size(z_in_km))
-    dividing_line = 80
-    upperatm = findall(i->i .> dividing_line, z_in_km)
-    k[findall(i->i .<= dividing_line, z_in_km)] .= 10. .^ (1.27942383e-2 .* z_in_km[findall(i->i .<= dividing_line, z_in_km)] .+ 3.46204744) .+ 2.30326595e+4
-    k[upperatm] .= 10. .^ (0.05668095 .* z_in_km[upperatm] .+ 0.16719716) .- 46.05106622
+    # # The functions used here are fits to the eddy profile in Zhang+2012.
+    # z_in_km = z ./ 1e5
+    # k = zeros(size(z_in_km))
+    # dividing_line = 80
+    # upperatm = findall(i->i .> dividing_line, z_in_km)
+    # k[findall(i->i .<= dividing_line, z_in_km)] .= 10. .^ (1.27942383e-2 .* z_in_km[findall(i->i .<= dividing_line, z_in_km)] .+ 3.46204744) .+ 2.30326595e+4
+    # k[upperatm] .= 10. .^ (0.05668095 .* z_in_km[upperatm] .+ 0.16719716) .- 46.05106622
 
     return k
 end
