@@ -80,7 +80,7 @@ const abs_tol = 1e-12
 # More basics that don't frequently change
 const ions_included = true # false # 
 const SZA = 60 # degrees 
-const fixed_species = [:Ar] # here you may enter any species that you want to be completely fixed (no updates to densities from chemistry or transport)
+const fixed_species = [] # here you may enter any species that you want to be completely fixed (no updates to densities from chemistry or transport)
 const reinitialize_atmo = false # Turn this to true if you want to wipe everything out with zero's
 
 # Tags, shortcodes, and filenames
@@ -301,7 +301,7 @@ sort!(long_lived_species)
 # **************************************************************************** #
 
 # Non-participants -------------------------------------------------------------
-const no_chem_species = []; 
+const no_chem_species = [:Ar]; 
 const no_transport_species = [];
 
 # This will append any species that you have picked to be completely fixed. 
