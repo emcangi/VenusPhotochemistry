@@ -44,8 +44,9 @@ const timestep_type = "dynamic-log" #"log-linear" # basically never use this one
 const exptype =  "temperature" #"water" # "insolation"#
 
 # water
-const water_case = "1e-6" # for Venus, this is just the mixing ratio.
-const water_mixing_ratio = 1e-6 #
+const water_case = "1e-5" # for Venus, this is just the mixing ratio.
+const water_mixing_ratio = parse(Float64, water_case) #
+println("Using water_mixing_ratio = $(water_mixing_ratio)")
 const reinitialize_water_profile = false # true # setting to true will set the water profile = water_mixing_ratio everywhere
 # const update_water_profile = false # this is for modifying the profile during cycling, currently doesn't work well
 
