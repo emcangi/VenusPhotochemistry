@@ -65,7 +65,7 @@ const tag = "venus_initial_convergence_$(results_version)"
 
 # Temperature, solar cycle, water
 const solarfiledict = Dict("mean"=>"VENUSsolarphotonflux_solarmean.dat", "min"=>"VENUSsolarphotonflux_solarmin.dat", "max"=>"VENUSsolarphotonflux_solarmax.dat")
-const tempdict = Dict("min"=>200., "mean"=>260., "max"=>320.)
+const tempdict = Dict("min"=>260., "mean"=>290., "max"=>320.)
 const solarfile = solarfiledict[solarcyc]
 const controltemps = [735., 170., tempdict[solarcyc]]
 const meantemps = [735., 170., 260.] # Used for saturation vapor pressure. DON'T CHANGE!
