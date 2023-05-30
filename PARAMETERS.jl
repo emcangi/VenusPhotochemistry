@@ -32,9 +32,9 @@ using DataFrames
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
 
 # Basic simulation parameters
-const optional_logging_note = "Try effusion velocity with ion temps for H+ and H2+ ions." # Simulation goal
+const optional_logging_note = "Commiting code" # Simulation goal
 const simset = "VenusPaper"
-const results_version = "v0.7"  # Helps keep track of attempts 
+const results_version = "v0.99"  # Helps keep track of attempts 
 const initial_atm_file = "converged_v0.6_withRCE.h5"#"converged_v0.5_whole_atm.h5"#"converged_v0.4d_remaining_ions.h5"#"converged_v0.4c_H_ions.h5"# "converged_v0.4b_minor_ions.h5"# "converged_v0.4_basic_ionosphere.h5" 
       #"converged_v0.3_D_neutrals.h5"# "converged_v0.2_minor_neutrals.h5"# "converged_v0.1_major_neutrals.h5"# "converged_v0_CO2_diffusion.h5"# "converged_v0.7_done.h5"#"INITIAL_GUESS.h5" 
 const seasonal_cycle = false # False for Venus

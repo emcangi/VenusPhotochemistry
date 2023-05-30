@@ -87,6 +87,13 @@ function generate_code(ii, TS, TM, TE, water, scyc;
     return hrcode, randstring()
 end
 
+function get_counts(array)
+    #=
+    Given some array, gets a count of each element in the array. 
+    =#
+    return [(i, count(==(i), array)) for i in unique(array)]
+end
+
 function get_paramfile(working_dir; use_default=false)
     #=
     Helper function to let the user select a parameter file form working_dir. 
