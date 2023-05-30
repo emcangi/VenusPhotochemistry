@@ -808,7 +808,6 @@ function plot_species_on_demand(atmdict, spclist, filename; savepath=nothing, sh
     end
 end
 
-
 function plot_temp_prof(Tprof_1; opt="", lbls=["Neutrals", "Ions", "Electrons"], xl1=150, xl2=3e4, Tprof_2=nothing, Tprof_3=nothing, savepath=nothing, showonly=false, globvars...)
     #=
     Creates a .png image of the tepmeratures plotted by altitude in the atmosphere
