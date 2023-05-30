@@ -26,7 +26,7 @@ ftype_chem = Float64 #Double64 #  used to compute chemical reaction rates and ch
 
 # Altitude grid specifications =================================================
 const zmax = 250e5
-const zmin = 58e5
+const zmin = 90e5 # 58e5
 const dz = 2e5
 const alt = convert(Array, (zmin:dz:zmax))
 const n_all_layers = length(alt)
@@ -34,7 +34,7 @@ const intaltgrid = round.(Int64, alt/1e5)[2:end-1]; # the altitude grid CELLS bu
 const non_bdy_layers = alt[2:end-1]  # all layers, centered on 2 km, 4...248. Excludes the boundary layers which are [-1, 1] and [249, 251].
 const num_layers = length(non_bdy_layers) # there are 124 non-boundary layers.
 const plot_grid = non_bdy_layers ./ 1e5;  # for plotting. Points located at atmospheric layer cell centers and in units of km.
-const ntot_at_lowerbdy = 8.51e18 # VENUS ONLY
+const ntot_at_lowerbdy = 9.5e15 # at 90 km  ## 8.51e18 # at 58km # VENUS ONLY
 
 # const zmin = alt[1]
 # const zmax = alt[end];
