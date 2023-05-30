@@ -55,7 +55,8 @@ function get_grad_colors(L::Int64, cmap; strt=0, stp=1)
 end
 
 function plot_atm(atmdict::Dict{Symbol, Vector{ftype_ncur}}, savepath::String, atol, E_prof; print_shortcodes=true, 
-                  t="", showonly=false, xlab=L"Species concentration (cm$^{-3}$)", xlim_1=(1e-8, 1e20), xlim_2=(1e-4, 1e6), 
+                  t="", showonly=false, xlab=L"Species concentration (cm$^{-3}$)", xlim_1=(1e-8, 1e20), xlim_2=(1e-4, 1e6),
+                  ylim=nothing,
                   legloc=[0.8,1], globvars...)
     #=
     Makes a "spaghetti plot" of the species concentrations by altitude in the
@@ -135,6 +136,10 @@ function plot_atm(atmdict::Dict{Symbol, Vector{ftype_ncur}}, savepath::String, a
         end
     end
 
+    if ylim == nothing
+        ylim = [0, GV.zmax/1e5]
+    end
+
     # Plot neutrals and ions together =========================================================
     if haskey(GV, :ion_species) # neutrals and ions 
         
@@ -183,7 +188,7 @@ function plot_atm(atmdict::Dict{Symbol, Vector{ftype_ncur}}, savepath::String, a
         # stuff that applies to all axes
         for r in 1:size(atm_ax)[1]
             for c in 1:size(atm_ax)[2]
-                atm_ax[r,c].set_ylim(0, GV.zmax/1e5)
+                atm_ax[r,c].set_ylim(ylim[1], ylim[2])
                 atm_ax[r,c].set_xscale("log")
                 handles, labels = atm_ax[r,c].get_legend_handles_labels()
                 if isempty(handles) == false
@@ -205,7 +210,7 @@ function plot_atm(atmdict::Dict{Symbol, Vector{ftype_ncur}}, savepath::String, a
         end
         atm_ax.tick_params(which="both", labeltop=true, top=true)
         plot_bg(atm_ax)
-        atm_ax.set_ylim(0, GV.zmax/1e5)
+        atm_ax.set_ylim(ylim[1], ylim[2])
         atm_ax.set_xscale("log")
         atm_ax.set_xlabel(xlab)
         atm_ax.legend(bbox_to_anchor=[1.01,1], loc=2, borderaxespad=0, fontsize=16)
@@ -225,6 +230,7 @@ function plot_atm(atmdict::Dict{Symbol, Vector{ftype_ncur}}, savepath::String, a
     else
         show()
     end
+    return atm_fig
 end
 
 function plot_bg(axob; bg="#ededed")

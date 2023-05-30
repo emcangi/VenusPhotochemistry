@@ -32,11 +32,10 @@ using DataFrames
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
 
 # Basic simulation parameters
-const optional_logging_note = "Commiting code" # Simulation goal
+const optional_logging_note = "Commit changes to repo" # Simulation goal
 const simset = "VenusPaper"
-const results_version = "v0.99"  # Helps keep track of attempts 
-const initial_atm_file = "converged_v0.6_withRCE.h5"#"converged_v0.5_whole_atm.h5"#"converged_v0.4d_remaining_ions.h5"#"converged_v0.4c_H_ions.h5"# "converged_v0.4b_minor_ions.h5"# "converged_v0.4_basic_ionosphere.h5" 
-      #"converged_v0.3_D_neutrals.h5"# "converged_v0.2_minor_neutrals.h5"# "converged_v0.1_major_neutrals.h5"# "converged_v0_CO2_diffusion.h5"# "converged_v0.7_done.h5"#"INITIAL_GUESS.h5" 
+const results_version = "v0.7"  # Helps keep track of attempts 
+const initial_atm_file = "venus_H2O1e-6_converged_c1JKkl1M.h5" # "converged_v0.6_withRCE.h5"#"converged_v0.5_whole_atm.h5"#"converged_v0.4d_remaining_ions.h5"#"converged_v0.4c_H_ions.h5"# "converged_v0.4b_minor_ions.h5"# "converged_v0.4_basic_ionosphere.h5" #"converged_v0.3_D_neutrals.h5"# "converged_v0.2_minor_neutrals.h5"# "converged_v0.1_major_neutrals.h5"# "converged_v0_CO2_diffusion.h5"# "converged_v0.7_done.h5"#"INITIAL_GUESS.h5" 
 const seasonal_cycle = false # False for Venus
 const timestep_type = "dynamic-log" #"log-linear" # basically never use this one: "static-log" 
 
@@ -45,7 +44,8 @@ const exptype =  "temperature" #"water" # "insolation"#
 
 # water
 const water_case = "1e-6" # for Venus, this is just the mixing ratio.
-const water_mixing_ratio = 1e-6 #
+const water_mixing_ratio = parse(Float64, water_case) #
+println("Using water_mixing_ratio = $(water_mixing_ratio)")
 const reinitialize_water_profile = false # true # setting to true will set the water profile = water_mixing_ratio everywhere
 # const update_water_profile = false # this is for modifying the profile during cycling, currently doesn't work well
 
@@ -64,7 +64,7 @@ const tag = "venus_initial_convergence_$(results_version)"
 
 # Temperature, solar cycle, water
 const solarfiledict = Dict("mean"=>"VENUSsolarphotonflux_solarmean.dat", "min"=>"VENUSsolarphotonflux_solarmin.dat", "max"=>"VENUSsolarphotonflux_solarmax.dat")
-const tempdict = Dict("min"=>200., "mean"=>260., "max"=>320.)
+const tempdict = Dict("min"=>260., "mean"=>290., "max"=>320.)
 const solarfile = solarfiledict[solarcyc]
 const controltemps = [735., 170., tempdict[solarcyc]]
 const meantemps = [735., 170., 260.] # Used for saturation vapor pressure. DON'T CHANGE!
@@ -79,7 +79,7 @@ const abs_tol = 1e-12
 # More basics that don't frequently change
 const ions_included = true # false # 
 const SZA = 60 # degrees 
-const fixed_species = [:Ar] # here you may enter any species that you want to be completely fixed (no updates to densities from chemistry or transport)
+const fixed_species = [] # here you may enter any species that you want to be completely fixed (no updates to densities from chemistry or transport)
 const reinitialize_atmo = false # Turn this to true if you want to wipe everything out with zero's
 
 # Tags, shortcodes, and filenames
@@ -163,36 +163,6 @@ const Tn_meanSVP = T(meantemps...; alt)["neutrals"]; # Needed for boundary condi
 
 # **************************************************************************** #
 #                                                                              #
-#                             Boundary conditions                              #
-#                                                                              #
-# **************************************************************************** #
-
-const H2Osat = map(x->Psat(x), Tn_meanSVP) # Using this function keeps SVP fixed 
-const KoverH_lowerbdy = Keddy([zmin], [ntot_at_lowerbdy])[1]/scaleH_lowerboundary(zmin, Tn_arr[1]; molmass)
-
-const speciesbclist=Dict(:CO2=>Dict("n"=>[0.965*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0.]),
-                         :CO=>Dict("n"=>[4.5e-6*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0.]),
-                         :O=> Dict("v"=>[KoverH_lowerbdy, NaN], "f"=>[NaN, 1.2e6]),
-                         :O2=>Dict("v"=>[KoverH_lowerbdy, NaN], "f"=>[NaN, 0]),
-                         :N=>Dict("v"=>[KoverH_lowerbdy, NaN], "f"=>[NaN, 0]),
-                         :NO=>Dict("n"=>[5.5e-9*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0]),
-                         :N2=>Dict("n"=>[0.034*ntot_at_lowerbdy, NaN]),
-
-                         :H2O=>Dict("n"=>[1e-6*ntot_at_lowerbdy, NaN]),
-                         :HDO=>Dict("n"=>[DH*1e-6*ntot_at_lowerbdy, NaN]),
-
-                         :H=> Dict("v"=>[KoverH_lowerbdy, effusion_velocity(Tn_arr[end], 1.0; zmax)], "ntf"=>[NaN, "see boundaryconditions()"]),
-                         :D=> Dict("v"=>[KoverH_lowerbdy, effusion_velocity(Tn_arr[end], 2.0; zmax)], "ntf"=>[NaN, "see boundaryconditions()"]),
-                         :H2=>Dict("v"=>[KoverH_lowerbdy, effusion_velocity(Tn_arr[end], 2.0; zmax)], "ntf"=>[NaN, "see boundaryconditions()"]),  # velocities are in cm/s
-                         :HD=>Dict("v"=>[KoverH_lowerbdy, effusion_velocity(Tn_arr[end], 3.0; zmax)], "ntf"=>[NaN, "see boundaryconditions()"]), # REMOVED 0 FLUXES FOR H2, HD
-
-                         :Hpl=>Dict("v"=>[KoverH_lowerbdy, effusion_velocity(Ti_arr[end], 1.0; zmax)]),#, "f"=>[NaN, 1.6e7]),
-                         :H2pl=>Dict("v"=>[KoverH_lowerbdy, effusion_velocity(Ti_arr[end], 2.0; zmax)]),#, "f"=>[NaN, 2e5]),
-                         :Opl=>Dict("v"=>[KoverH_lowerbdy, NaN], "f"=>[NaN, 5.2e6]),
-                       );
-
-# **************************************************************************** #
-#                                                                              #
 #                    Species name lists and J rate lists                       #
 #                                                                              #
 # **************************************************************************** #
@@ -254,6 +224,71 @@ const Jratelist = [conv_Jrates..., newJrates...];
 # These dictionaries specify the species absorbing a photon for each J rate, and the products of the reaction.
 const absorber = Dict([x=>Symbol(match(r"(?<=J).+(?=to)", string(x)).match) for x in Jratelist])
 
+
+# **************************************************************************** #
+#                                                                              #
+#                             Boundary conditions                              #
+#                                                                              #
+# **************************************************************************** #
+
+const H2Osat = map(x->Psat(x), Tn_meanSVP) # Using this function keeps SVP fixed 
+const KoverH_lowerbdy = Keddy([zmin], [ntot_at_lowerbdy])[1]/scaleH_lowerboundary(zmin, Tn_arr[1]; molmass)
+
+const manual_speciesbclist=Dict(# major species neutrals at lower boundary (estimated from Fox&Sung 2001, Hedin+1985, agrees pretty well with VIRA)
+                                :CO2=>Dict("n"=>[0.965*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0.]),
+                                :Ar=>Dict("n"=>[5e11, NaN], "f"=>[NaN, 0.]),
+                                :CO=>Dict("n"=>[4.5e-6*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0.]),
+                                :O2=>Dict("n"=>[3e-3*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0.]),
+                                :N2=>Dict("n"=>[0.032*ntot_at_lowerbdy, NaN]),
+
+                                # water mixing ratio is fixed at lower boundary
+                                :H2O=>Dict("n"=>[water_mixing_ratio*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0.]),
+                                # we assume HDO has the bulk atmosphere ratio with H2O at the lower boundary, ~consistent with Bertaux+2007 observations
+                                :HDO=>Dict("n"=>[DH*water_mixing_ratio*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0.]),
+
+                                # atomic H and D escape solely by photochemical loss to space, can also be mixed downward
+                                :H=> Dict("v"=>[-KoverH_lowerbdy, effusion_velocity(Tn_arr[end], 1.0; zmax)], # thermal escape, negligible
+                                                #                 ^^^ other options here:
+                                                #                 100 # representing D transport to nightside, NOT escape
+                                                #                 NaN # No thermal escape to space, appropriate for global average model
+                                          "ntf"=>[NaN, "see boundaryconditions()"]),
+                                :D=> Dict("v"=>[-KoverH_lowerbdy, effusion_velocity(Tn_arr[end], 2.0; zmax)], # thermal escape, negligible
+                                                #                 ^^^ other options here:
+                                                #                 100 # representing D transport to nightside, NOT escape
+                                                #                 NaN # No thermal escape to space, appropriate for global average model
+                                          "ntf"=>[NaN, "see boundaryconditions()"]),
+
+                                # # H2 mixing ratio at lower boundary adopted from Yung&DeMore1982 as in Fox&Sung2001
+                                # :H2=>Dict("n"=>[1e-7*ntot_at_lowerbdy, NaN],
+                                #           "v"=>[NaN, effusion_velocity(Tn_arr[end], 2.0; zmax)],
+                                #           "ntf"=>[NaN, "see boundaryconditions()"]),
+                                # :HD=>Dict("n"=>[DH*1e-7*ntot_at_lowerbdy, NaN],
+                                #           "v"=>[NaN, effusion_velocity(Tn_arr[end], 3.0; zmax)],
+                                #           "ntf"=>[NaN, "see boundaryconditions()"]),
+
+                                # unusued neutral boundary conditions
+                                #:O=> Dict("v"=>[-KoverH_lowerbdy, NaN], "f"=>[NaN, 0.#=1.2e6=#]), # no effect on O profile
+                                #:N=>Dict("v"=>[-KoverH_lowerbdy, NaN], "f"=>[NaN, 0.]),
+                                #:NO=>Dict("v"=>[-KoverH_lowerbdy, NaN], #="n"=>[3e8, NaN],=# #="n"=>[5.5e-9*ntot_at_lowerbdy, NaN], =# "f"=>[NaN, 0.]),
+
+                                # assume no ion loss, appropriate for global average and small observed rates
+                                #:Hpl=>Dict("v"=>[-KoverH_lowerbdy, 0.0 #=effusion_velocity(Ti_arr[end], 1.0; zmax)=#]),#, "f"=>[NaN, 1.6e7]),
+                                #:H2pl=>Dict("v"=>[-KoverH_lowerbdy, 0.0 #=effusion_velocity(Ti_arr[end], 2.0; zmax)=#]),#, "f"=>[NaN, 2e5]),
+                                #:Opl=>Dict("v"=>[-KoverH_lowerbdy, NaN], "f"=>[NaN, 0.0#=5.2e6=#]),
+                                );
+
+# add in downward mixing velocity boundary condition for all other species
+auto_speciesbclist = Dict()
+for sp in all_species
+    if sp in keys(manual_speciesbclist)
+        auto_speciesbclist[sp] = manual_speciesbclist[sp]
+    else
+        auto_speciesbclist[sp] = Dict("v"=>[-KoverH_lowerbdy, 0.0])
+    end
+end
+
+const speciesbclist = deepcopy(auto_speciesbclist)
+
 # **************************************************************************** #
 #                                                                              #
 #                      Miscellaneous logical groupings                         #
@@ -300,7 +335,7 @@ sort!(long_lived_species)
 # **************************************************************************** #
 
 # Non-participants -------------------------------------------------------------
-const no_chem_species = []; 
+const no_chem_species = [:Ar]; 
 const no_transport_species = [];
 
 # This will append any species that you have picked to be completely fixed. 

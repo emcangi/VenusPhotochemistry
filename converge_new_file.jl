@@ -357,17 +357,17 @@ function chemJmat(n_active_longlived, n_active_shortlived, n_inactive, Jrates, t
     # This only runs if water is designated as an active species; if it's in inactive_species, this won't run,
     # When it is active, this finds all the H2O and HDO indices for the lower atmosphere. 
     # It's like above where we add (ialt-1)*length(active_species), but this way it's outside the loop.
-    if in(:H2O, GV.active_longlived) && in(:HDO, GV.active_longlived)
-        H2Opositions = GV.H2Oi .+ length(GV.active_longlived)*collect(0:GV.upper_lower_bdy_i-1)
-        HDOpositions = GV.HDOi .+ length(GV.active_longlived)*collect(0:GV.upper_lower_bdy_i-1)
-        water_positions = sort(union(H2Opositions, HDOpositions))
+    # if in(:H2O, GV.active_longlived) && in(:HDO, GV.active_longlived)
+    #     H2Opositions = GV.H2Oi .+ length(GV.active_longlived)*collect(0:GV.upper_lower_bdy_i-1)
+    #     HDOpositions = GV.HDOi .+ length(GV.active_longlived)*collect(0:GV.upper_lower_bdy_i-1)
+    #     water_positions = sort(union(H2Opositions, HDOpositions))
 
-        i_remove = findall(x->in(x, water_positions), chemJi)
-        j_remove = findall(x->in(x, water_positions), chemJj) # these are removed because if a species is inert, a derivative with respect to it is a derivative of a constant 
-        remove_these = sort(union(i_remove, j_remove)) # This makes a set, since it describes the locations where the H2O and HDO indices are.
-                                                       # Kinda confusing since we're talking about indices of indices.
-        chemJval[remove_these] .= 0 
-    end
+    #     i_remove = findall(x->in(x, water_positions), chemJi)
+    #     j_remove = findall(x->in(x, water_positions), chemJj) # these are removed because if a species is inert, a derivative with respect to it is a derivative of a constant 
+    #     remove_these = sort(union(i_remove, j_remove)) # This makes a set, since it describes the locations where the H2O and HDO indices are.
+    #                                                    # Kinda confusing since we're talking about indices of indices.
+    #     chemJval[remove_these] .= 0 
+    # end
 
     # Uncomment the following to check the eigenvalues of the jacobian. Requires a global variable called stiffness.
     # J = sparse(chemJi, chemJj, chemJval, length(nthis), length(nthis), +) 
@@ -447,10 +447,10 @@ function ratefn(n_active_longlived, n_active_shortlived, n_inactive, Jrates, tup
 
     # NEW: Overwrite the entries for water in the lower atmosphere with 0s so that it will behave as fixed.
     # Only runs when water is in the active_species list. If neutrals are set to inactive, it will be taken care of already.
-    if in(:H2O, GV.active_longlived) && in(:HDO, GV.active_longlived)
-        returnrates[GV.H2Oi, 1:GV.upper_lower_bdy_i] .= 0
-        returnrates[GV.HDOi, 1:GV.upper_lower_bdy_i] .= 0
-    end
+    # if in(:H2O, GV.active_longlived) && in(:HDO, GV.active_longlived)
+    #     returnrates[GV.H2Oi, 1:GV.upper_lower_bdy_i] .= 0
+    #     returnrates[GV.HDOi, 1:GV.upper_lower_bdy_i] .= 0
+    # end
 
     return [returnrates...;]
 end
