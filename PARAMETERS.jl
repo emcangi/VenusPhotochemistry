@@ -32,7 +32,7 @@ using DataFrames
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
 
 # Basic simulation parameters
-const optional_logging_note = "Fix lower boundary condition sign convention" # Simulation goal
+const optional_logging_note = "Commit changes to repo" # Simulation goal
 const simset = "VenusPaper"
 const results_version = "v0.7"  # Helps keep track of attempts 
 const initial_atm_file = "venus_H2O1e-6_converged_c1JKkl1M.h5" # "converged_v0.6_withRCE.h5"#"converged_v0.5_whole_atm.h5"#"converged_v0.4d_remaining_ions.h5"#"converged_v0.4c_H_ions.h5"# "converged_v0.4b_minor_ions.h5"# "converged_v0.4_basic_ionosphere.h5" #"converged_v0.3_D_neutrals.h5"# "converged_v0.2_minor_neutrals.h5"# "converged_v0.1_major_neutrals.h5"# "converged_v0_CO2_diffusion.h5"# "converged_v0.7_done.h5"#"INITIAL_GUESS.h5" 
@@ -247,24 +247,24 @@ const manual_speciesbclist=Dict(# major species neutrals at lower boundary (esti
                                 :HDO=>Dict("n"=>[DH*water_mixing_ratio*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0.]),
 
                                 # atomic H and D escape solely by photochemical loss to space, can also be mixed downward
-                                :H=> Dict("v"=>[-KoverH_lowerbdy, NaN], # No thermal escape to space, appropriate for global average model
+                                :H=> Dict("v"=>[-KoverH_lowerbdy, effusion_velocity(Tn_arr[end], 1.0; zmax)], # thermal escape, negligible
                                                 #                 ^^^ other options here:
                                                 #                 100 # representing D transport to nightside, NOT escape
-                                                #                 effusion_velocity(Tn_arr[end], 1.0; zmax) # thermal escape, negligible
+                                                #                 NaN # No thermal escape to space, appropriate for global average model
                                           "ntf"=>[NaN, "see boundaryconditions()"]),
-                                :D=> Dict("v"=>[-KoverH_lowerbdy, NaN], # No thermal escape to space, appropriate for global average model
+                                :D=> Dict("v"=>[-KoverH_lowerbdy, effusion_velocity(Tn_arr[end], 2.0; zmax)], # thermal escape, negligible
                                                 #                 ^^^ other options here:
                                                 #                 100 # representing D transport to nightside, NOT escape
-                                                #                 effusion_velocity(Tn_arr[end], 2.0; zmax) # thermal escape, negligible
+                                                #                 NaN # No thermal escape to space, appropriate for global average model
                                           "ntf"=>[NaN, "see boundaryconditions()"]),
 
-                                # H2 mixing ratio at lower boundary adopted from Yung&DeMore1982 as in Fox&Sung2001
-                                :H2=>Dict("n"=>[1e-7*ntot_at_lowerbdy, NaN],
-                                          "v"=>[NaN, effusion_velocity(Tn_arr[end], 2.0; zmax)],
-                                          "ntf"=>[NaN, "see boundaryconditions()"]),
-                                :HD=>Dict("n"=>[DH*1e-7*ntot_at_lowerbdy, NaN],
-                                          "v"=>[NaN, effusion_velocity(Tn_arr[end], 3.0; zmax)],
-                                          "ntf"=>[NaN, "see boundaryconditions()"]),
+                                # # H2 mixing ratio at lower boundary adopted from Yung&DeMore1982 as in Fox&Sung2001
+                                # :H2=>Dict("n"=>[1e-7*ntot_at_lowerbdy, NaN],
+                                #           "v"=>[NaN, effusion_velocity(Tn_arr[end], 2.0; zmax)],
+                                #           "ntf"=>[NaN, "see boundaryconditions()"]),
+                                # :HD=>Dict("n"=>[DH*1e-7*ntot_at_lowerbdy, NaN],
+                                #           "v"=>[NaN, effusion_velocity(Tn_arr[end], 3.0; zmax)],
+                                #           "ntf"=>[NaN, "see boundaryconditions()"]),
 
                                 # unusued neutral boundary conditions
                                 #:O=> Dict("v"=>[-KoverH_lowerbdy, NaN], "f"=>[NaN, 0.#=1.2e6=#]), # no effect on O profile
