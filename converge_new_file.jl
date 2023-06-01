@@ -1919,6 +1919,7 @@ catch y
     throw("ERROR: Simulation terminated before completion with exception:")
 end
 
+
 tf = time() 
 
 write_to_log(logfile, "Finished!\nSimulation active convergence runtime $(format_sec_or_min(tf-ti))", mode="a")
@@ -2009,6 +2010,10 @@ elseif problem_type == "Gear"
 
     # Write out the final state to a unique file for easy finding
     write_final_state(atm_soln, results_dir, sim_folder_name, final_atm_file; alt, num_layers, hrshortcode, Jratedict, rshortcode, external_storage)
+
+    # Write out the final column rates to the reaction log
+    calculate_and_write_column_rates("active_rxns.xlsx", atm_soln; all_species, dz, ion_species, num_layers, reaction_network, results_dir, sim_folder_name, 
+                                                              Tn=Tn_arr[2:end-1], Ti=Ti_arr[2:end-1], Te=Te_arr[2:end-1])
     
     write_to_log(logfile, "$(Dates.format(now(), "(HH:MM:SS)")) Making production/loss plots", mode="a")
     println("$(Dates.format(now(), "(HH:MM:SS)")) Making production/loss plots (this tends to take several minutes)")

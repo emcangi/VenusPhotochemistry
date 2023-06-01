@@ -4,6 +4,22 @@
 #                                                                              #
 # **************************************************************************** #
 # checked for planet-agnosticism 20-Dec-22
+function add_column(data, colname, sheetname, filename)
+    #=
+    Adds a column containing the data within data to the sheet sheetname inside the excel spreadsheet filename.
+    =#
+    
+    themode = isfile(filename) ? "rw" : "w"
+    
+    XLSX.openxlsx(filename, mode=themode) do xf
+        sheet = xf["$(sheetname)"]
+        
+        df = DataFrame(XLSX.readtable(filename, sheetname))
+        new_col_num = size(df)[2] + 1
+
+        sheet[:, new_col_num] = [colname, data...]
+    end
+end
 
 function create_folder(foldername::String, parentdir::String)
     #=

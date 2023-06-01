@@ -85,6 +85,7 @@ padtosolar,
 populate_xsect_dict, 
 
 # FileIO.jl
+add_column,
 create_folder,
 get_elapsed_time, 
 get_ncurrent, 
@@ -121,8 +122,10 @@ plot_water_profile,
 top_mechanisms,    
 
 # ReactionNetwork.jl
+calculate_and_write_column_rates,
 filter_network, 
 format_Jrates, 
+get_product_and_reactant_cols,
 load_network_and_make_functions,
 load_reaction_network, 
 log_reactions, 
