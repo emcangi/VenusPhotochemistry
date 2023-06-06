@@ -4,7 +4,7 @@
 #                                                                              #
 # **************************************************************************** #
 
-function T(Tsurf::Float64, Tmeso::Float64, Texo::Float64; z_meso_top=110e5, lapserate=-8e-5, weird_Tn_param=8, globvars...)
+function T(Tsurf::Float64, Tmeso::Float64, Texo::Float64; z_meso_top=80e5, lapserate=-8e-5, weird_Tn_param=8, globvars...)
     #= 
     Input:
         z: altitude above surface in cm
@@ -34,14 +34,21 @@ function T(Tsurf::Float64, Tmeso::Float64, Texo::Float64; z_meso_top=110e5, laps
     end
 
     function NEUTRALS()
-        function upper_atmo_neutrals(z_arr)
-            @. return Texo - (Texo - Tmeso)*exp(-((z_arr - z_meso_top)^2)/(weird_Tn_param*1e10*Texo))
-        end
+        # function upper_atmo_neutrals(z_arr)
+        #     @. return Texo - (Texo - Tmeso)*exp(-((z_arr - z_meso_top)^2)/(weird_Tn_param*1e10*Texo))
+        # end
         Tn = zeros(size(GV.alt))
 
         Tn[i_lower] .= Tsurf .+ lapserate*GV.alt[i_lower]
         Tn[i_meso] .= Tmeso
-        Tn[i_upper] .= upper_atmo_neutrals(GV.alt[i_upper])
+
+        # upper atmo
+        Tfile = readdlm("FoxandSung2001_temps_mike.txt",',')
+        T_n = Tfile[2,:]
+        alt_i = Tfile[1,:] .* 1e5
+        interp_ion = LinearInterpolation(alt_i, T_n)
+        Tn_interped = [interp_ion(a) for a in new_a];
+        Tn[i_upper] .= Tn_interped # upper_atmo_neutrals(GV.alt[i_upper])
 
         return Tn 
     end 
@@ -53,9 +60,9 @@ function T(Tsurf::Float64, Tmeso::Float64, Texo::Float64; z_meso_top=110e5, laps
         Te[i_meso] .= Tmeso
 
         # Upper atmo
-        Telec = readdlm("../Resources/PlotsFromPapers/foxandsung2001_Te.dat",' ', Float64, comments=true, comment_char='#')
-        T_e = Telec[:, 1]
-        alt_e = Telec[:, 2] .* 1e5
+        Tfile = readdlm("FoxandSung2001_temps_mike.txt",',')
+        T_e = Tfile[4,:]
+        alt_e = Tfile[1,:] .* 1e5
         interp_elec = LinearInterpolation(alt_e, T_e)
         Te_interped = [interp_elec(a) for a in new_a];
         Te[i_upper] .= Te_interped# upperatmo_i_or_e(alt[i_upper], spc)
@@ -70,9 +77,9 @@ function T(Tsurf::Float64, Tmeso::Float64, Texo::Float64; z_meso_top=110e5, laps
         Ti[i_meso] .= Tmeso
 
         # Upper atmo
-        Tion = readdlm("../Resources/PlotsFromPapers/foxandsung2001_Tion.dat",' ', Float64, comments=true, comment_char='#')
-        T_i = Tion[:, 1]
-        alt_i = Tion[:, 2] .* 1e5
+        Tfile = readdlm("FoxandSung2001_temps_mike.txt",',')
+        T_i = Tfile[3,:]
+        alt_i = Tfile[1,:] .* 1e5
         interp_ion = LinearInterpolation(alt_i, T_i)
         Ti_interped = [interp_ion(a) for a in new_a];
         Ti[i_upper] .= Ti_interped# upperatmo_i_or_e(alt[i_upper], spc)
@@ -90,7 +97,7 @@ function T(Tsurf::Float64, Tmeso::Float64, Texo::Float64; z_meso_top=110e5, laps
     # i_meso_top = findfirst(z->z==z_meso_top, GV.alt)
 
     # For interpolating upper atmo temperatures from Fox & Sung 2001
-    new_a = collect(112e5:2e5:250e5)
+    new_a = collect(90e5:2e5:250e5)
 
 
     # In the lower atmosphere, neutrals, ions, and electrons all have the same temperatures. 
