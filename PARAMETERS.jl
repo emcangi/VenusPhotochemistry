@@ -243,7 +243,7 @@ const manual_speciesbclist=Dict(# major species neutrals at lower boundary (esti
                                 # water mixing ratio is fixed at lower boundary
                                 :H2O=>Dict("n"=>[water_mixing_ratio*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0.]),
                                 # we assume HDO has the bulk atmosphere ratio with H2O at the lower boundary, ~consistent with Bertaux+2007 observations
-                                :HDO=>Dict("n"=>[DH*water_mixing_ratio*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0.]),
+                                :HDO=>Dict("n"=>[2*DH*water_mixing_ratio*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0.]),
 
                                 # atomic H and D escape solely by photochemical loss to space, can also be mixed downward
                                 :H=> Dict("v"=>[-KoverH_lowerbdy, effusion_velocity(Tn_arr[end], 1.0; zmax)], # thermal escape, negligible
