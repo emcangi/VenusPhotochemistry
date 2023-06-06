@@ -34,7 +34,6 @@ using DataFrames
 # Basic simulation parameters
 const optional_logging_note = "Run with duplicate reactions removed and column rates in the reaction spreadsheet" # Simulation goal
 const simset = "VenusPaper"
-const results_version = "v0.8"  # Helps keep track of attempts 
 const initial_atm_file = "venus_H2O1e-6_converged_c1JKkl1M.h5" # "converged_v0.6_withRCE.h5"#"converged_v0.5_whole_atm.h5"#"converged_v0.4d_remaining_ions.h5"#"converged_v0.4c_H_ions.h5"# "converged_v0.4b_minor_ions.h5"# "converged_v0.4_basic_ionosphere.h5" #"converged_v0.3_D_neutrals.h5"# "converged_v0.2_minor_neutrals.h5"# "converged_v0.1_major_neutrals.h5"# "converged_v0_CO2_diffusion.h5"# "converged_v0.7_done.h5"#"INITIAL_GUESS.h5" 
 const seasonal_cycle = false # False for Venus
 const timestep_type = "dynamic-log" #"log-linear" # basically never use this one: "static-log" 
