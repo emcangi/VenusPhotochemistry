@@ -291,8 +291,8 @@ function string_to_latexstr(a; dollarsigns=true)
     this will format it as a latex string for easy plotting.
     =#
     if dollarsigns==true
-        replaced = replace(a, "O1D"=>"O(^1D)", "Nup2D"=>"N(^2D)", "2pl"=>"_2^+", "3pl"=>"_3^+", "2"=>"_2", "3"=>"_3", "E"=>"e^-", 
-                                      "J"=>"", "plp"=>"^+ +", "pl"=>"^+",  "p"=>"+", 
+        replaced = replace(a, "O1D"=>"O(^{1}D)", "Nup2D"=>"N(^{2}D)", "2pl"=>"_{2}^{+}", "3pl"=>"_{3}^{+}", "2"=>"_{2}", "3"=>"_{3}", "E"=>"e^{-}", 
+                                      "J"=>"", "plp"=>"^{+} +", "pl"=>"^{+}",  "p"=>"+", 
                                       "-->"=>"\\rightarrow", "to"=>" \\rightarrow ")
         
         returnme = latexstring("\$\\mathrm{" * replaced * "}\$" ) 
@@ -303,6 +303,3 @@ function string_to_latexstr(a; dollarsigns=true)
 
     return returnme
 end
-
-
-
