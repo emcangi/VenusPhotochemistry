@@ -32,7 +32,7 @@ using DataFrames
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
 
 # Basic simulation parameters
-const optional_logging_note = "Double lower boundary HDO/H2O" # Simulation goal
+const optional_logging_note = "Double lower boundary HDO/2(H2O) to 240x VSMOW" # Simulation goal
 const simset = "VenusPaper"
 const results_version = "v0.7"  # Helps keep track of attempts 
 const initial_atm_file = "venus_H2O1e-6_converged_c1JKkl1M.h5" # "converged_v0.6_withRCE.h5"#"converged_v0.5_whole_atm.h5"#"converged_v0.4d_remaining_ions.h5"#"converged_v0.4c_H_ions.h5"# "converged_v0.4b_minor_ions.h5"# "converged_v0.4_basic_ionosphere.h5" #"converged_v0.3_D_neutrals.h5"# "converged_v0.2_minor_neutrals.h5"# "converged_v0.1_major_neutrals.h5"# "converged_v0_CO2_diffusion.h5"# "converged_v0.7_done.h5"#"INITIAL_GUESS.h5" 
@@ -244,7 +244,7 @@ const manual_speciesbclist=Dict(# major species neutrals at lower boundary (esti
                                 # water mixing ratio is fixed at lower boundary
                                 :H2O=>Dict("n"=>[water_mixing_ratio*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0.]),
                                 # we assume HDO has the bulk atmosphere ratio with H2O at the lower boundary, ~consistent with Bertaux+2007 observations
-                                :HDO=>Dict("n"=>[DH*water_mixing_ratio*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0.]),
+                                :HDO=>Dict("n"=>[2*DH*water_mixing_ratio*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0.]),
 
                                 # atomic H and D escape solely by photochemical loss to space, can also be mixed downward
                                 :H=> Dict("v"=>[-KoverH_lowerbdy, effusion_velocity(Tn_arr[end], 1.0; zmax)], # thermal escape, negligible
