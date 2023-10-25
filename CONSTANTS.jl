@@ -15,7 +15,7 @@ const mH = 1.67e-24;            # g
 const M_P = 4.867e27;  # g # replaced marsM
 const R_P = 6050e5;         # cm  # replaced radiusM
 const q = -4.8032e-10            # statcoulomb (cm^1.5 g^0.5 s^-1)
-const DH = 240 * 1.6e-4         # SMOW value, needs citation
+const DH = 120 * 1.6e-4         # SMOW value, needs citation
 const sol_in_sec = 2.09968e7   # One Venus sol in seconds - WARNING - days on Venus are weird
 const SA_Venus = 4*pi*(R_P)^2 # cm^2
 
