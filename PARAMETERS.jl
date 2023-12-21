@@ -32,9 +32,9 @@ using DataFrames
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
 
 # Basic simulation parameters
-const optional_logging_note = "Double lower boundary HDO/2(H2O) to 240x VSMOW" # Simulation goal
+const optional_logging_note = "Fix HCO+ DR branching ratios" # Simulation goal
 const simset = "VenusPaper"
-const initial_atm_file = "venus_H2O1e-6_converged_c1JKkl1M.h5" # "converged_v0.6_withRCE.h5"#"converged_v0.5_whole_atm.h5"#"converged_v0.4d_remaining_ions.h5"#"converged_v0.4c_H_ions.h5"# "converged_v0.4b_minor_ions.h5"# "converged_v0.4_basic_ionosphere.h5" #"converged_v0.3_D_neutrals.h5"# "converged_v0.2_minor_neutrals.h5"# "converged_v0.1_major_neutrals.h5"# "converged_v0_CO2_diffusion.h5"# "converged_v0.7_done.h5"#"INITIAL_GUESS.h5" 
+const initial_atm_file = "venus_H2O1e-6_converged_vGFd5b0a.h5" #"venus_H2O1e-6_converged_c1JKkl1M.h5" # "converged_v0.6_withRCE.h5"#"converged_v0.5_whole_atm.h5"#"converged_v0.4d_remaining_ions.h5"#"converged_v0.4c_H_ions.h5"# "converged_v0.4b_minor_ions.h5"# "converged_v0.4_basic_ionosphere.h5" #"converged_v0.3_D_neutrals.h5"# "converged_v0.2_minor_neutrals.h5"# "converged_v0.1_major_neutrals.h5"# "converged_v0_CO2_diffusion.h5"# "converged_v0.7_done.h5"#"INITIAL_GUESS.h5" 
 const seasonal_cycle = false # False for Venus
 const timestep_type = "dynamic-log" #"log-linear" # basically never use this one: "static-log" 
 
@@ -59,7 +59,7 @@ const solarcyc = "mean" # "max" # "min"#
 
 
 # Set up tag name according to the type of simulation set
-const tag = "venus_initial_convergence_$(results_version)"
+const tag = "venus_initial_convergence_0.7" # _$(results_version)"
 
 # Temperature, solar cycle, water
 const solarfiledict = Dict("mean"=>"VENUSsolarphotonflux_solarmean.dat", "min"=>"VENUSsolarphotonflux_solarmin.dat", "max"=>"VENUSsolarphotonflux_solarmax.dat")

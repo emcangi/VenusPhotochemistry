@@ -66,9 +66,9 @@ def mscale_str(m2, m1, p):
     """
     if m2 != 1:
         if p == -0.5:
-            return f"$\sqrt{{ \\frac{{{m1}}}{{{m2}}} }}$"
+            return f"$\\sqrt{{ \\frac{{{m1}}}{{{m2}}} }}$"
         else:
-            return f"$\left(\\frac{{{m2}}}{{{m1}}}\right)^{{{p}}}$"
+            return f"$\\left(\\frac{{{m2}}}{{{m1}}}\\right)^{{{p}}}$"
     else:
         return ""
     
@@ -81,8 +81,8 @@ def a_str(a):
     """
     Astring = str("{:.2e}".format(a))
     if "e-" in Astring:
-        Astring = Astring.replace("e-0", r" \times 10^{-")
-        Astring = Astring.replace("e-", r" \times 10^{-")
+        Astring = Astring.replace("e-0", " \\times 10^{-")
+        Astring = Astring.replace("e-", " \\times 10^{-")
         Astring = Astring + "}"
 
     return Astring
@@ -98,7 +98,7 @@ def b_str(b, T="T_i"):
     T: a string to fill in for temperature. e.g. Tn, Ti, Te for neutrals, ions, elecrons.
     """
     if b != 0:
-        return f"\left({T}\right)^{{{b}}}"#f"\left(\\frac{{{T}}}{{300}}\right)^{{{b}}}"
+        return f"\\left({T}\\right)^{{{b}}}"#f"\\left(\\frac{{{T}}}{{300}}\\right)^{{{b}}}"
     else:
         return ""
 
@@ -125,7 +125,7 @@ def k_str(a, b, c, a0="", b0="", c0="", T="T_i"):
     for further explanation.
     """
     if (a0 != 0) & (a0 != ""):
-        return r"\makecell[l]{See text \\ k$_{\infty}="+f"{a_str(a)}{b_str(b, T=T)}{c_str(c, T=T)}$ \\\ k$_0={a_str(a0)}{b_str(b0, T=T)}{c_str(c0, T=T)}$" + r"}"
+        return "\\makecell[l]{See text \\ k$_{\infty}="+f"{a_str(a)}{b_str(b, T=T)}{c_str(c, T=T)}$ \\\\ k$_0={a_str(a0)}{b_str(b0, T=T)}{c_str(c0, T=T)}$" + "}"
     else:
         return f"${a_str(a)}{b_str(b, T=T)}{c_str(c, T=T)}$"
 
@@ -337,7 +337,7 @@ pd.set_option('max_colwidth', None)
 
 # Just a folder from which to get a parameter file to be able to list all_species.
 main_folder = input("Enter the full pathname to the folder in which the reaction spreadsheet exists: ")
-# print(f"Using the following file to extract the all species list: {main_folder}\n")
+# print(f"Using the following file to extract the all species list: {main_folder}\\n")
 filename = input("Enter the filename with extension: ")
 
 which = input("Do you want to do D reactions only (D only), non-D reactions (no D) or all (just press enter)?")
@@ -425,9 +425,9 @@ photo_df.loc[:, "Num"] = range(1, len(photo_df)+1)
 next_rxn_number = assign_reaction_numbers(photo_df)
 
 # Make the strings 
-photo_df = photo_df.assign(reactants = [f"$\mathrm{{{participant_str(r1)}}}$" if r1!="" else "" for r1 in photo_df["R1"]] )
-photo_df = photo_df.assign(products = [f"$\mathrm{{{participant_str(p1,p2,p3)}}}$" for (p1,p2,p3) in zip(photo_df["P1"], photo_df["P2"], photo_df["P3"])])
-photo_df = photo_df.assign(**{'Column Rate': ["$"+format(cr, '.2E').replace("-0", "-").replace("+0", "").replace("+", "").replace("E", " \times 10^{")+"}$" for cr in photo_df["ColumnRate"]]}) # colrate
+photo_df = photo_df.assign(reactants = [f"$\\mathrm{{{participant_str(r1)}}}$" if r1!="" else "" for r1 in photo_df["R1"]] )
+photo_df = photo_df.assign(products = [f"$\\mathrm{{{participant_str(p1,p2,p3)}}}$" for (p1,p2,p3) in zip(photo_df["P1"], photo_df["P2"], photo_df["P3"])])
+photo_df = photo_df.assign(**{'Column Rate': ["$"+format(cr, '.2E').replace("-0", "-").replace("+0", "").replace("+", "").replace("E", " \\times 10^{")+"}$" for cr in photo_df["ColumnRate"]]}) # colrate
 
 
 # Make the final df
@@ -463,8 +463,8 @@ n_df = n_df.drop(["index"], axis=1)
 thenext_rxn_number = assign_reaction_numbers(n_df, opt_start=next_rxn_number)
 
 # Make the strings 
-n_df = n_df.assign(reactants = [f"$\mathrm{{{participant_str(r1,r2,r3)}}}$" if r1!="" else "" for (r1,r2,r3) in zip(n_df["R1"], n_df["R2"], n_df["R3"])])
-n_df = n_df.assign(products = [f"$\mathrm{{{participant_str(p1,p2,p3)}}}$" if p1!="" else ""  for (p1,p2,p3) in zip(n_df["P1"], n_df["P2"], n_df["P3"])])
+n_df = n_df.assign(reactants = [f"$\\mathrm{{{participant_str(r1,r2,r3)}}}$" if r1!="" else "" for (r1,r2,r3) in zip(n_df["R1"], n_df["R2"], n_df["R3"])])
+n_df = n_df.assign(products = [f"$\\mathrm{{{participant_str(p1,p2,p3)}}}$" if p1!="" else ""  for (p1,p2,p3) in zip(n_df["P1"], n_df["P2"], n_df["P3"])])
 
 # Other column strings
 n_df = n_df.assign(ratecoeff = [k_str(A,B,C,a0=A0,b0=B0,c0=C0,T="T_n") for (A,B,C,A0,B0,C0) in zip(n_df["kA"], n_df["kB"], n_df["kC"], n_df["k0A"], n_df["k0B"], n_df["k0C"])])
@@ -473,7 +473,7 @@ n_df = n_df.assign(BR = [f"{br_str(BR)}" for BR in n_df["BR"]])
 n_df = n_df.assign(MS = [f"{mscale_str(M2, M1, p)}" for (M2, M1, p) in zip(n_df["M2"], n_df["M1"], n_df["pow"])])
 n_df = n_df.assign(Ref = [f"{refstr(r)}" for r in n_df["Reference"]])
 n_df = n_df.assign(F = [f"{f_str(f)}" for f in n_df["F"]]) # No D reactions have troe parameter.
-n_df = n_df.assign(**{'Column Rate': ["$"+format(cr, '.2E').replace("-0", "-").replace("+0", "").replace("+", "").replace("E", " \times 10^{")+"}$" for cr in n_df["ColumnRate"]]}) # colrate
+n_df = n_df.assign(**{'Column Rate': ["$"+format(cr, '.2E').replace("-0", "-").replace("+0", "").replace("+", "").replace("E", " \\times 10^{")+"}$" for cr in n_df["ColumnRate"]]}) # colrate
 
 # Make the final df
 n_df.rename(columns = {'ratecoeff':'Rate coefficient'}, inplace = True)
@@ -508,8 +508,8 @@ i_df = i_df.drop(["index"], axis=1)
 assign_reaction_numbers(i_df, opt_start=thenext_rxn_number)
 
 # Make the strings 
-i_df = i_df.assign(reactants = [f"$\mathrm{{{participant_str(r1,r2)}}}$" for (r1,r2) in zip(i_df["R1"], i_df["R2"])])
-i_df = i_df.assign(products = [f"$\mathrm{{{participant_str(p1,p2,p3)}}}$" for (p1,p2,p3) in zip(i_df["P1"], i_df["P2"], i_df["P3"])])
+i_df = i_df.assign(reactants = [f"$\\mathrm{{{participant_str(r1,r2)}}}$" for (r1,r2) in zip(i_df["R1"], i_df["R2"])])
+i_df = i_df.assign(products = [f"$\\mathrm{{{participant_str(p1,p2,p3)}}}$" for (p1,p2,p3) in zip(i_df["P1"], i_df["P2"], i_df["P3"])])
 
 # Other column strings
 i_df = i_df.assign(ratecoeff = [k_str(A,B,C) for (A,B,C) in zip(i_df["kA"], i_df["kB"], i_df["kC"])])
@@ -517,8 +517,8 @@ i_df = i_df.assign(BR = [f"{br_str(BR)}" for BR in i_df["BR"]])
 i_df = i_df.assign(MS = [f"{mscale_str(M2, M1, p)}" for (M2, M1, p) in zip(i_df["M2"], i_df["M1"], i_df["pow"])])
 i_df = i_df.assign(Ref = [f"{refstr(r)}" for r in i_df["Reference"]])
 i_df = i_df.assign(F = [f"" for i in i_df["Reference"]]) # No D reactions have troe parameter.
-i_df = i_df.assign(**{'Column Rate': [re.sub(r'E[+-]0', ' \times 10^{' + f"{'-' if '{:.2E}'.format(cr)[5] == '-' else ''}", '{:.2E}'.format(cr)+'}') for cr in i_df["ColumnRate"]]}) # colrate
-i_df = i_df.assign(**{'Column Rate': ["$"+format(cr, '.2E').replace("-0", "-").replace("+0", "").replace("+", "").replace("E", " \times 10^{")+"}$" for cr in i_df["ColumnRate"]]}) # colrate
+i_df = i_df.assign(**{'Column Rate': [re.sub('E[+-]0', ' \\times 10^{' + f"{'-' if '{:.2E}'.format(cr)[5] == '-' else ''}", '{:.2E}'.format(cr)+'}') for cr in i_df["ColumnRate"]]}) # colrate
+i_df = i_df.assign(**{'Column Rate': ["$"+format(cr, '.2E').replace("-0", "-").replace("+0", "").replace("+", "").replace("E", " \\times 10^{")+"}$" for cr in i_df["ColumnRate"]]}) # colrate
 
 
 # Make the final df
