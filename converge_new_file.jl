@@ -1227,7 +1227,7 @@ if adding_new_species==true
                     end
                 else 
                     try 
-                        n_current[nn] = reshape(readdlm("../Resources/initial_profiles/$(string(nn))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
+                        n_current[nn] = reshape(readdlm("./Resources/initial_profiles/$(string(nn))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
                     catch 
                         println("No initial guess found for $(nn). Initial profile will be zero everywhere.")
                     end
@@ -1258,7 +1258,7 @@ if adding_new_species==true
                     end
                 else 
                     try 
-                        n_current[ni] = reshape(readdlm("../Resources/initial_profiles/$(string(ni))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
+                        n_current[ni] = reshape(readdlm("./Resources/initial_profiles/$(string(ni))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
                     catch 
                         println("No initial guess found for $(ni). Initial profile will be zero everywhere.")
                     end
@@ -1292,7 +1292,7 @@ if adding_new_species==true
                     end
                 else 
                     try 
-                        n_current[nn] = reshape(readdlm("../Resources/initial_profiles/$(string(nn))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
+                        n_current[nn] = reshape(readdlm("./Resources/initial_profiles/$(string(nn))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
                     catch 
                         println("No initial guess found for $(nn). Initial profile will be zero everywhere.")
                     end
@@ -1308,7 +1308,7 @@ if adding_new_species==true
                     end
                 else 
                     try 
-                        n_current[ni] = reshape(readdlm("../Resources/initial_profiles/$(string(ni))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
+                        n_current[ni] = reshape(readdlm("./Resources/initial_profiles/$(string(ni))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
                     catch 
                         println("No initial guess found for $(ni). Initial profile will be zero everywhere.")
                     end
